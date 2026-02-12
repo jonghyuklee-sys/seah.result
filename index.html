@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>세아씨엠 성과개선 보고</title>
+    <meta name="description" content="세아씨엠 월별 성과개선 보고 시스템 - 데이터 입력 및 자동 차트 생성">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <img src="seah-logo.jpg" alt="SeAH CM Logo" class="logo-img">
+            </div>
+            <div class="report-title-container">
+                <div class="report-title">세아씨엠 성과개선 보고 시스템</div>
+                <div class="report-subtitle">REPORT SYSTEM</div>
+            </div>
+        </div>
+        <div class="sidebar-menu">
+            <div class="menu-section">
+                <div class="menu-section-title">현황 요약</div>
+                <a href="#" class="menu-item active" data-section="dashboard">
+                    <i class="fas fa-th-large"></i>
+                    <span>종합 대시보드</span>
+                </a>
+                <a href="#" class="menu-item" data-section="costReduction">
+                    <i class="fas fa-chart-line"></i>
+                    <span>제조원가 절감 현황</span>
+                </a>
+                <a href="#" class="menu-item" data-section="linePerformance">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>라인별 실적</span>
+                </a>
+                <a href="#" class="menu-item" data-section="keyTasks">
+                    <i class="fas fa-tasks"></i>
+                    <span>주요과제 진행사항</span>
+                </a>
+            </div>
+            <div class="menu-section">
+                <div class="menu-section-title">주요지표</div>
+                <a href="#" class="menu-item" data-section="equipEfficiency">
+                    <i class="fas fa-cogs"></i>
+                    <span>설비종합효율</span>
+                </a>
+                <a href="#" class="menu-item" data-section="scrap">
+                    <i class="fas fa-recycle"></i>
+                    <span>스크랩 현황</span>
+                </a>
+                <a href="#" class="menu-item" data-section="yield">
+                    <i class="fas fa-bullseye"></i>
+                    <span>A급 수율</span>
+                </a>
+                <a href="#" class="menu-item" data-section="tonPower">
+                    <i class="fas fa-bolt"></i>
+                    <span>톤파워</span>
+                </a>
+                <a href="#" class="menu-item" data-section="operationRate">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>실가동률</span>
+                </a>
+                <a href="#" class="menu-item" data-section="lng">
+                    <i class="fas fa-fire"></i>
+                    <span>LNG원단위</span>
+                </a>
+                <a href="#" class="menu-item" data-section="power">
+                    <i class="fas fa-plug"></i>
+                    <span>전력원단위</span>
+                </a>
+                <a href="#" class="menu-item" data-section="steam">
+                    <i class="fas fa-cloud"></i>
+                    <span>스팀</span>
+                </a>
+                <a href="#" class="menu-item" data-section="consumables">
+                    <i class="fas fa-tools"></i>
+                    <span>소모품 원단위</span>
+                </a>
+                <a href="#" class="menu-item" data-section="factoryKPI">
+                    <i class="fas fa-industry"></i>
+                    <span>공장KPI (폐기/재고)</span>
+                </a>
+                <a href="#" class="menu-item" data-section="complaints">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>고객불만 및 반품</span>
+                </a>
+                <a href="#" class="menu-item" data-section="breakdown">
+                    <i class="fas fa-wrench"></i>
+                    <span>설비고장</span>
+                </a>
+            </div>
+        </div>
+        <div class="sidebar-footer">
+            <button class="btn-export" id="btnExport">
+                <i class="fas fa-file-export"></i> 보고서 내보내기
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <button class="menu-toggle" id="menuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="mobile-logo">
+            <img src="seah-logo.jpg" alt="SeAH CM Logo" class="mobile-logo-img">
+            <span>성과개선 보고 시스템</span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <h1 id="pageTitle">제조원가 절감 현황</h1>
+                <span class="report-month" id="reportMonth">2025년 12월</span>
+            </div>
+            <div class="top-bar-right">
+                <div class="month-selector">
+                    <label>보고 월:</label>
+                    <select id="selectYear">
+                        <option value="2024">2024년</option>
+                        <option value="2025" selected>2025년</option>
+                        <option value="2026">2026년</option>
+                    </select>
+                    <select id="selectMonth">
+                        <option value="1">1월</option>
+                        <option value="2">2월</option>
+                        <option value="3">3월</option>
+                        <option value="4">4월</option>
+                        <option value="5">5월</option>
+                        <option value="6">6월</option>
+                        <option value="7">7월</option>
+                        <option value="8">8월</option>
+                        <option value="9">9월</option>
+                        <option value="10">10월</option>
+                        <option value="11">11월</option>
+                        <option value="12" selected>12월</option>
+                    </select>
+                </div>
+                <button class="btn-save-all" id="btnSaveAll">
+                    <i class="fas fa-save"></i> 전체 저장
+                </button>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area" id="contentArea">
+            <!-- Sections will be rendered dynamically -->
+        </div>
+    </main>
+
+    <!-- Data Input Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="dataModal">
+            <div class="modal-header">
+                <h2 id="modalTitle">데이터 입력</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic form content -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="modalCancel">취소</button>
+                <button class="btn-confirm" id="modalConfirm">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">저장되었습니다.</span>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script src="js/data.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/sections.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
