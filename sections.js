@@ -1085,6 +1085,7 @@ const SectionRenderers = {
       ------------------------------------------ */
     factoryKPI(container) {
         const d = dataManager.getSectionData('factoryKPI');
+        const meta = dataManager.data.meta;
 
         container.innerHTML = `
     <div class="card" style="margin-bottom:20px">
@@ -1185,6 +1186,7 @@ const SectionRenderers = {
       ------------------------------------------ */
     complaints(container) {
         const d = dataManager.getSectionData('complaints');
+        const meta = dataManager.data.meta;
 
         container.innerHTML = `
     <div class="card" style="margin-bottom:20px">
