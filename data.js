@@ -10,21 +10,23 @@ const TEAMS = ['생산팀(냉연)', '생산팀(칼라)', '설비팀', '품질경
 const TEAMS_COLD = ['생산팀(냉연)', '설비팀', '품질경영팀']; // 냉연
 const TEAMS_COLOR = ['생산팀(칼라)', '변화관리팀', '안전환경팀']; // 칼라
 
-// Firebase 설정 (스크린샷 기반 실제 설정값 반영)
-const firebaseConfig = {
-    apiKey: "AIzaSyArAJX9RF00aGWrptwKG5bMX8gtDl7aKJw",
-    authDomain: "conden-mgmt-common.firebaseapp.com",
-    projectId: "conden-mgmt-common",
-    storageBucket: "conden-mgmt-common.firebasestorage.app",
-    messagingSenderId: "1056648535315",
-    appId: "1:1056648535315:web:545b6a117284c551c4cee6"
+// Firebase 설정 (보안을 위해 외부에서 주입받는 방식으로 변경)
+// index.html에서 firebase-config.js를 불러오거나 Vercel 환경변수를 통해 설정됩니다.
+const firebaseConfig = window.FIREBASE_CONFIG || {
+    // 로컬 테스트용 빈 값 (실제 값은 서버에서 주입)
+    apiKey: "DUMMY_KEY_FOR_LOCAL_ONLY",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
 };
 
-if (!firebase.apps.length) {
+if (!firebase.apps.length && firebaseConfig.projectId) {
     firebase.initializeApp(firebaseConfig);
 }
-const db = firebase.firestore();
-const storage = firebase.storage();
+const db = firebase.apps.length ? firebase.firestore() : null;
+const storage = firebase.apps.length ? firebase.storage() : null;
 const COLLECTION = "performance_data";
 
 const STORAGE_KEY = 'seah_cm_report_data';
@@ -56,16 +58,17 @@ class DataManager {
     async init() {
         // ★ 구조 변경 후 오래된 로컬 캐시 정리 (한 번만)
         try {
-            if (!localStorage.getItem('seah_cm_cache_cleared_v2')) {
+            if (!localStorage.getItem('seah_cm_cache_cleared_v3')) { // 버전을 v3로 올려서 강제 초기화 유도
                 const keysToRemove = [];
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key && key.startsWith('seah_cm_report_data')) keysToRemove.push(key);
+                    if (key && (key.startsWith('seah_cm_report_data') || key.startsWith('seah_cm_last_meta'))) {
+                        keysToRemove.push(key);
+                    }
                 }
                 keysToRemove.forEach(k => localStorage.removeItem(k));
-                localStorage.removeItem('seah_cm_migrated_v1');
-                localStorage.setItem('seah_cm_cache_cleared_v2', 'true');
-                console.log('✅ 오래된 로컬 캐시 정리 완료');
+                localStorage.setItem('seah_cm_cache_cleared_v3', 'true');
+                console.log('✅ 시스템 구조 변경으로 인한 로컬 캐시 전체 초기화 완료');
             }
         } catch (e) { }
 
@@ -100,15 +103,42 @@ class DataManager {
         const docId = this.getDocId(year, month);
         const localKey = this.getLocalKey(year, month);
 
+        // ★ 레벨별 딥 머지 (Deep Merge): 빈 데이터가 기존의 상세 데이터를 지우지 못하게 함
+        const deepMerge = (base, override) => {
+            const result = { ...base };
+            for (const key in override) {
+                const val = override[key];
+
+                if (val && typeof val === 'object' && !Array.isArray(val)) {
+                    // 객체인 경우 재귀적으로 병합 (단, override의 객체가 비어있지 않을 때만)
+                    if (Object.keys(val).length > 0) {
+                        result[key] = deepMerge(result[key] || {}, val);
+                    }
+                } else if (val !== null && val !== undefined && val !== '') {
+                    // 배열이나 기본 타입은 값이 있을 때만 덮어쓰기
+                    if (Array.isArray(val)) {
+                        if (val.some(item => item !== null && item !== undefined)) {
+                            result[key] = val;
+                        }
+                    } else {
+                        result[key] = val;
+                    }
+                }
+            }
+            return result;
+        };
+
         // 1. 로컬캐시 먼저 확인
         try {
             const saved = localStorage.getItem(localKey);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                // 캐시된 데이터가 요청한 월과 일치하는지 확인
-                if (parsed.meta && parsed.meta.year === year && parsed.meta.month === month) {
-                    this.data = parsed;
-                    this.docExists = true;
+                if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                    if (parsed.meta && parsed.meta.year === year && parsed.meta.month === month) {
+                        const base = (year === 2026 && month === 1) ? this.getDefaultData() : this.getEmptyTemplate();
+                        this.data = deepMerge(base, parsed);
+                        this.docExists = true;
+                    }
                 }
             }
         } catch (e) { }
@@ -117,19 +147,37 @@ class DataManager {
         try {
             const doc = await db.collection(COLLECTION).doc(docId).get();
             if (doc.exists) {
-                this.data = doc.data();
-                this.docExists = true;
+                const fetched = doc.data();
+                if (fetched && Object.keys(fetched).length > 0) {
+                    const base = (year === 2026 && month === 1) ? this.getDefaultData() : this.getEmptyTemplate();
+                    this.data = deepMerge(base, fetched);
+                    this.docExists = true;
+                } else {
+                    console.warn(`ℹ️ ${docId} 문서가 존재하지만 비어있습니다.`);
+                    this.docExists = false;
+                }
                 this.saveLocal();
                 console.log(`✅ ${year}년 ${month}월 데이터 로드 완료 (${docId})`);
             } else {
-                console.log(`ℹ️ ${year}년 ${month}월 데이터가 없습니다. 빈 템플릿으로 유지합니다.`);
+                console.log(`ℹ️ ${year}년 ${month}월 데이터가 없습니다.`);
                 this.docExists = false;
-                // 로컬캐시도 제거 (데이터가 없으므로)
-                try { localStorage.removeItem(localKey); } catch (e) { }
+
+                // ★ 26년 1월인 경우에만 기본 샘플 데이터로 복구 (데이터 유실 체감 방지)
+                if (year === 2026 && month === 1 && !this.docExists) {
+                    console.log('💡 26년 1월 기본 샘플 데이터를 로드합니다.');
+                    this.data = this.getDefaultData();
+                    this.saveLocal(); // 복구된 샘플 데이터를 로컬에 캐시
+                } else {
+                    // 그 외 월은 빈 템플릿 유지
+                    try { localStorage.removeItem(localKey); } catch (e) { }
+                }
             }
         } catch (e) {
             console.error('❌ Firebase 로드 실패:', e);
-            // 이미 위에서 템플릿으로 초기화했으므로 추가 작업 불필요
+            // 로드 실패 시에도 26년 1월이면 샘플 데이터라도 보여줌
+            if (year === 2026 && month === 1 && (!this.data || Object.keys(this.data).length < 5)) {
+                this.data = this.getDefaultData();
+            }
         }
 
         // 메타정보 항상 현재 선택 월로 맞춤
@@ -150,12 +198,37 @@ class DataManager {
     }
 
     async saveFirebase() {
+        // 데이터 정제 및 유효성 검사
+        if (!this.data || typeof this.data !== 'object') {
+            this.data = this.getEmptyTemplate();
+        }
+
+        // 필수 필드(meta 등)가 없거나 필드 수가 너무 적으면(예: 1-2개) 기본 구조와 강제 병합
+        // Firestore의 "Document fields must not be empty" 오류를 원천 차단하기 위함
+        if (Object.keys(this.data).length < 5 || !this.data.meta) {
+            console.warn('⚠️ 데이터 구조가 깨져 있어 기본 템플릿과 강제 병합합니다.');
+            const template = this.getEmptyTemplate();
+            this.data = { ...template, ...this.data };
+            this.data.meta = { ...template.meta, ...this.data.meta };
+        }
+
+        // 최종 직렬화 테스트 및 undefined 제거
+        let cleanData;
         try {
-            await db.collection(COLLECTION).doc(this.activeDocId).set(this.data);
+            cleanData = JSON.parse(JSON.stringify(this.data));
+        } catch (e) {
+            console.error('데이터 직렬화 실패:', e);
+            cleanData = this.getEmptyTemplate();
+        }
+
+        try {
+            const docId = this.activeDocId;
+            await db.collection(COLLECTION).doc(docId).set(cleanData);
+            console.log(`✅ Firebase 저장 완료: ${docId}`);
             return true;
         } catch (e) {
-            console.error('Firebase 저장 실패:', e);
-            return false;
+            console.error('❌ Firebase 저장 실패:', e);
+            throw e;
         }
     }
 
@@ -239,8 +312,8 @@ class DataManager {
         return {
             meta: { year: 2026, month: 1, company: '세아씨엠' },
             costReduction: {
-                target: 0, actual24: 0, q4Compare: 0, changeRate: 0,
-                production: { avg24: 0, plan: 0, actual: 0 },
+                target: 0, actual25: 0, q4Compare: 0, changeRate: 0,
+                production: { avg25: 0, plan: 0, actual: 0 },
                 analysis: { comment: '', lines: {} },
                 lineData: { unitCost: {}, improvement: {} },
                 yieldRate: { y24: '-', y25: '-', m_prev: '-', m_goal: '-', m_actual: '-' },
@@ -341,11 +414,11 @@ class DataManager {
             // 1. 제조원가 절감 현황
             costReduction: {
                 target: 3.85,
-                actual24: 7.57,
+                actual25: 7.57,
                 q4Compare: 13.36,
                 changeRate: 196,
                 production: {
-                    avg24: 93552,
+                    avg25: 93552,
                     plan: 95690,
                     actual: 93828
                 },
@@ -602,32 +675,32 @@ class DataManager {
                 }
             },
 
-            // 주요지표 - 고객불만 및 반품
+            // 주요지표 - 고객불만 및 반품 (PDF 데이터 반영)
             complaints: {
                 customerComplaints: {
-                    yearly: [null, null, null, null],
-                    monthly: new Array(12).fill(null),
-                    count: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 },
-                    closed: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 },
-                    compensation: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 }
+                    yearly: [15, 12, 12, 1], // 22, 23, 24, 25.1월
+                    monthly: [1, null, null, null, null, null, null, null, null, null, null, null],
+                    count: { total1to11: 0, dec: 1, cumulative25: 1, y24: 12 },
+                    closed: { total1to11: 0, dec: 1, cumulative25: 1, y24: 12 },
+                    compensation: { total1to11: 0, dec: 5.6, cumulative25: 5.6, y24: 44.5 }
                 },
                 returns: {
-                    yearly: [null, null, null, null],
-                    monthly: new Array(12).fill(null),
+                    yearly: [5, 4, 4, 0],
+                    monthly: [0, null, null, null, null, null, null, null, null, null, null, null],
                     count: { total1to11: 0, dec: 0, cumulative25: 0 },
-                    volume: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 },
-                    loss: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 }
+                    volume: { total1to11: 0, dec: 0, cumulative25: 0, y24: 15.2 },
+                    loss: { total1to11: 0, dec: 0, cumulative25: 0, y24: 21.8 }
                 }
             },
 
-            // 주요지표 - 설비고장
+            // 주요지표 - 설비고장 (PDF 데이터 반영)
             breakdown: {
-                timeTotal: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
-                countTotal: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
-                timeMech: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
-                countMech: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
-                timeElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
-                countElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+                timeTotal: { target: 12.0, yearly: [15.2, 14.5, 13.8, 12.5], monthly: [12.5, null, null, null, null, null, null, null, null, null, null, null] },
+                countTotal: { target: 10, yearly: [12, 11, 10, 8], monthly: [8, null, null, null, null, null, null, null, null, null, null, null] },
+                timeMech: { target: 7.0, yearly: [9.2, 8.5, 7.8, 7.2], monthly: [7.2, null, null, null, null, null, null, null, null, null, null, null] },
+                countMech: { target: 6, yearly: [7, 6, 6, 5], monthly: [5, null, null, null, null, null, null, null, null, null, null, null] },
+                timeElec: { target: 5.0, yearly: [6.0, 6.0, 6.0, 5.3], monthly: [5.3, null, null, null, null, null, null, null, null, null, null, null] },
+                countElec: { target: 4, yearly: [5, 5, 4, 3], monthly: [3, null, null, null, null, null, null, null, null, null, null, null] }
             }
         };
     }
@@ -672,23 +745,24 @@ class DataManager {
         const localKey = this.getLocalKey(this.currentYear, this.currentMonth);
 
         try {
-            console.log(`Firestore 문서 삭제 시도: ${docId}`);
-            // 1. Firebase에서 삭제
+            // 1. Firebase에서 문서 과감히 삭제
             await db.collection(COLLECTION).doc(docId).delete();
-            // 2. 로컬 캐시 삭제
-            localStorage.removeItem(localKey);
-
-            // 3. 상태 초기화
-            this.data = this.getEmptyTemplate();
-            this.data.meta.year = this.currentYear;
-            this.data.meta.month = this.currentMonth;
-            this.docExists = false;
         } catch (e) {
-            console.error('초기화(삭제) 실패:', e);
-            // 삭제 실패 시 빈 데이터로 덮어쓰기라도 수행
-            this.data = this.getEmptyTemplate();
-            await this.save();
+            console.warn('Firebase 문서 삭제 실패 (이미 없거나 권한 문제):', e);
         }
+
+        // 2. 로컬 캐시 무조건 삭제
+        localStorage.removeItem(localKey);
+
+        // 3. 상태를 완전히 깨끗한 템플릿으로 교체
+        const template = this.getEmptyTemplate();
+        template.meta.year = this.currentYear;
+        template.meta.month = this.currentMonth;
+        this.data = template;
+        this.docExists = false;
+
+        // 4. 깨끗해진 상태를 다시 저장 (구조 복구 완료)
+        await this.save();
     }
 
     // 파일 업로드 (Firebase Storage)

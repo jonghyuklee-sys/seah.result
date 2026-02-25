@@ -573,17 +573,13 @@
                 const originalHtml = btnSaveAll.innerHTML;
                 btnSaveAll.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
 
-                const success = await dataManager.save();
-                if (success) {
-                    const y = dataManager.currentYear;
-                    const m = dataManager.currentMonth;
-                    showToast(`${y}년 ${m}월 데이터가 저장되었습니다.`);
-                } else {
-                    alert('파이어베이스 저장에 실패했습니다. 네트워크 상태를 확인해 주세요.');
-                }
+                await dataManager.save();
+                const y = dataManager.currentYear;
+                const m = dataManager.currentMonth;
+                showToast(`${y}년 ${m}월 데이터가 저장되었습니다.`);
             } catch (e) {
                 console.error('전체 저장 에러:', e);
-                alert(`저장 중 오류가 발생했습니다: ${e.message}`);
+                alert(`파이어베이스 저장에 실패했습니다:\n${e.message}\n\n시스템 관리자에게 문의하거나 보안 규칙 설정을 확인해 주세요.`);
             } finally {
                 btnSaveAll.disabled = false;
                 btnSaveAll.innerHTML = '<i class="fas fa-save"></i> 전체 저장';

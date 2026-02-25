@@ -15,8 +15,8 @@ const SectionRenderers = {
         container.innerHTML = `
             <div class="summary-row">
                 <div class="summary-card positive">
-                    <span class="summary-label">원가 절감 누적 (24년 대비)</span>
-                    <span class="summary-value">${formatNumber(cost.actual24)}</span>
+                    <span class="summary-label">원가 절감 누적 (25년 대비)</span>
+                    <span class="summary-value">${formatNumber(cost.actual25 || cost.actual24)}</span>
                     <span class="summary-change">억원 (달성 ${cost.changeRate}%)</span>
                </div>
                 <div class="summary-card info">
@@ -135,8 +135,8 @@ const SectionRenderers = {
             <!-- 요약 카드-->
             <div class="summary-row">
                 <div class="summary-card ${d.changeRate >= 0 ? 'positive' : 'negative'}">
-                    <span class="summary-label">원가 절감 실적 (24년 대비)</span>
-                    <span class="summary-value">${formatNumber(d.actual24)}</span>
+                    <span class="summary-label">원가 절감 실적 (25년 대비)</span>
+                    <span class="summary-value">${formatNumber(d.actual25 || d.actual24)}</span>
                     <span class="summary-change ${d.changeRate >= 0 ? 'up' : 'down'}">${d.changeRate}%</span>
                 </div>
                 <div class="summary-card ${d.q4Compare >= 0 ? 'positive' : 'negative'}">
@@ -410,7 +410,7 @@ const SectionRenderers = {
                 labels: LINES,
                 datasets: [
                     { label: '목표', data: LINES.map(l => d.costReduction?.[l]?.target || 0) },
-                    { label: '24년 대비', data: LINES.map(l => d.costReduction?.[l]?.y24 || 0) },
+                    { label: '25년 대비', data: LINES.map(l => d.costReduction?.[l]?.y25 || 0) },
                     { label: '4분기 대비', data: LINES.map(l => d.costReduction?.[l]?.q4 || 0) }
                 ],
                 title: '제조원가 절감 현황'
@@ -418,7 +418,7 @@ const SectionRenderers = {
             createGroupedBarChart('chart-line-prod', {
                 labels: LINES,
                 datasets: [
-                    { label: '24월평균', data: LINES.map(l => d.production?.[l]?.avg24 || 0) },
+                    { label: '25월평균', data: LINES.map(l => d.production?.[l]?.avg25 || d.production?.[l]?.avg24 || 0) },
                     { label: '계획량', data: LINES.map(l => d.production?.[l]?.plan || 0) },
                     { label: '생산량', data: LINES.map(l => d.production?.[l]?.actual || 0) }
                 ],
@@ -1149,7 +1149,7 @@ const SectionRenderers = {
         <div class="card-body">
             <div class="data-table-wrapper">
                 <table class="data-table">
-                    <thead><tr><th>구분</th><th>25년</th>${MONTHS.map(m => `<th>${m}</th>`).join('')}</tr></thead>
+                    <thead><tr><th>구분</th><th>${meta.year - 1}년</th>${MONTHS.map(m => `<th>${m}</th>`).join('')}</tr></thead>
                     <tbody>
                         <tr><td><strong>목표</strong></td>${(d.semiProduct?.target || []).slice(0, 13).map(v => `<td>${formatNumber(v)}</td>`).join('')}</tr>
                         <tr><td><strong>실적</strong></td>${(d.semiProduct?.actual || []).slice(0, 13).map(v => `<td>${formatNumber(v)}</td>`).join('')}</tr>
@@ -1205,7 +1205,7 @@ const SectionRenderers = {
                     <div class="card-body">
                         <div class="chart-container" style="height:280px"><canvas id="chart-complaints"></canvas></div>
                         <table class="data-table" style="margin-top:16px">
-                            <thead><tr><th>구분</th><th>단위</th><th>1~11월</th><th>12월</th><th>25.누적</th><th>24년</th></tr></thead>
+                            <thead><tr><th>구분</th><th>단위</th><th>${meta.year - 1}년(1~11)</th><th>${meta.year - 1}년(12월)</th><th>${meta.year - 1}년 누적</th><th>${meta.year - 2}년</th></tr></thead>
                             <tbody>
                                 <tr><td>접수</td><td>건</td><td>${d.customerComplaints?.count?.total1to11 || '-'}</td><td>${d.customerComplaints?.count?.dec || '-'}</td><td>${d.customerComplaints?.count?.cumulative25 || '-'}</td><td>${d.customerComplaints?.count?.y24 || '-'}</td></tr>
                                 <tr><td>종결</td><td>건</td><td>${d.customerComplaints?.closed?.total1to11 || '-'}</td><td>${d.customerComplaints?.closed?.dec || '-'}</td><td>${d.customerComplaints?.closed?.cumulative25 || '-'}</td><td>${d.customerComplaints?.closed?.y24 || '-'}</td></tr>
@@ -1221,7 +1221,7 @@ const SectionRenderers = {
                     <div class="card-body">
                         <div class="chart-container" style="height:280px"><canvas id="chart-returns"></canvas></div>
                         <table class="data-table" style="margin-top:16px">
-                            <thead><tr><th>구분</th><th>단위</th><th>1~11월</th><th>12월</th><th>25.누적</th><th>24년</th></tr></thead>
+                            <thead><tr><th>구분</th><th>단위</th><th>${meta.year - 1}년(1~11)</th><th>${meta.year - 1}년(12월)</th><th>${meta.year - 1}년 누적</th><th>${meta.year - 2}년</th></tr></thead>
                             <tbody>
                                 <tr><td>건수</td><td>건</td><td>${d.returns?.count?.total1to11 || '-'}</td><td>${d.returns?.count?.dec || '-'}</td><td>${d.returns?.count?.cumulative25 || '-'}</td><td>-</td></tr>
                                 <tr><td>중량</td><td>건</td><td>${d.returns?.volume?.total1to11 || '-'}</td><td>${d.returns?.volume?.dec || '-'}</td><td>${d.returns?.volume?.cumulative25 || '-'}</td><td>${d.returns?.volume?.y24 || '-'}</td></tr>
