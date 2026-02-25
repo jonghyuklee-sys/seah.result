@@ -4,9 +4,11 @@
 
 const LINES = ['CPL', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'];
 const MONTHS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
-const YEARS = ['22년', '23년', '24년', '25년'];
+const YEARS = ['23년', '24년', '25년', '26년'];
 const YEAR_MONTH_LABELS = [...YEARS, ...MONTHS];
-const TEAMS = ['생산팀', '설비팀', '품질경영팀', '변화관리팀', '안전환경팀'];
+const TEAMS = ['생산팀(냉연)', '생산팀(칼라)', '설비팀', '품질경영팀', '변화관리팀', '안전환경팀'];
+const TEAMS_COLD = ['생산팀(냉연)', '설비팀', '품질경영팀']; // 냉연
+const TEAMS_COLOR = ['생산팀(칼라)', '변화관리팀', '안전환경팀']; // 칼라
 
 // Firebase 설정 (스크린샷 기반 실제 설정값 반영)
 const firebaseConfig = {
@@ -22,53 +24,126 @@ if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
-const DOC_ID = "report_v1";
+const storage = firebase.storage();
 const COLLECTION = "performance_data";
 
 const STORAGE_KEY = 'seah_cm_report_data';
 
 class DataManager {
     constructor() {
-        this.data = this.getDefaultData(); // 초기값 설정
+        this.data = this.getEmptyTemplate();
         this.isLoaded = false;
+        this.docExists = false;
+        this.currentYear = 2026;
+        this.currentMonth = 1;
+    }
+
+    // 월별 문서 ID 생성 (예: report_2026_01)
+    getDocId(year, month) {
+        return `report_${year}_${String(month).padStart(2, '0')}`;
+    }
+
+    // 현재 활성 문서 ID
+    get activeDocId() {
+        return this.getDocId(this.currentYear, this.currentMonth);
+    }
+
+    // 로컬 스토리지 키 (월별)
+    getLocalKey(year, month) {
+        return `${STORAGE_KEY}_${year}_${String(month).padStart(2, '0')}`;
     }
 
     async init() {
-        // 1. LocalStorage 우선 로드
-        const localData = this.loadLocal();
-        if (localData) {
-            this.data = localData;
-        }
-
-        // 2. Firebase Firestore에서 최신 데이터 가져오기
+        // ★ 구조 변경 후 오래된 로컬 캐시 정리 (한 번만)
         try {
-            const doc = await db.collection(COLLECTION).doc(DOC_ID).get();
-            if (doc.exists) {
-                this.data = doc.data();
-                this.saveLocal(); // 로컬 캐시 업데이트
-                console.log('✅ Firebase 데이터 동기화 완료');
-            } else {
-                console.log('ℹ️ Firebase에 데이터가 없습니다. 기본 데이터를 업로드합니다.');
-                await this.saveFirebase();
+            if (!localStorage.getItem('seah_cm_cache_cleared_v2')) {
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('seah_cm_report_data')) keysToRemove.push(key);
+                }
+                keysToRemove.forEach(k => localStorage.removeItem(k));
+                localStorage.removeItem('seah_cm_migrated_v1');
+                localStorage.setItem('seah_cm_cache_cleared_v2', 'true');
+                console.log('✅ 오래된 로컬 캐시 정리 완료');
             }
-        } catch (e) {
-            console.error('❌ Firebase 로드 실패:', e);
-        }
+        } catch (e) { }
+
+        // 로컬에서 마지막 선택한 월 정보 복원
+        try {
+            const lastMeta = localStorage.getItem('seah_cm_last_meta');
+            if (lastMeta) {
+                const meta = JSON.parse(lastMeta);
+                this.currentYear = meta.year || 2026;
+                this.currentMonth = meta.month || 1;
+            }
+        } catch (e) { }
+
+        // 현재 월 데이터 로드
+        await this.loadMonth(this.currentYear, this.currentMonth);
+
         this.isLoaded = true;
     }
 
-    loadLocal() {
+
+    // 특정 월 데이터 로드 (핵심 메서드)
+    async loadMonth(year, month) {
+        this.currentYear = year;
+        this.currentMonth = month;
+        this.docExists = false;
+
+        // ★ 중요: 이전 월 데이터가 남지 않도록 먼저 초기화
+        this.data = this.getEmptyTemplate();
+        this.data.meta.year = year;
+        this.data.meta.month = month;
+
+        const docId = this.getDocId(year, month);
+        const localKey = this.getLocalKey(year, month);
+
+        // 1. 로컬캐시 먼저 확인
         try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            return saved ? JSON.parse(saved) : null;
+            const saved = localStorage.getItem(localKey);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // 캐시된 데이터가 요청한 월과 일치하는지 확인
+                if (parsed.meta && parsed.meta.year === year && parsed.meta.month === month) {
+                    this.data = parsed;
+                    this.docExists = true;
+                }
+            }
+        } catch (e) { }
+
+        // 2. Firebase에서 최신 데이터 가져오기
+        try {
+            const doc = await db.collection(COLLECTION).doc(docId).get();
+            if (doc.exists) {
+                this.data = doc.data();
+                this.docExists = true;
+                this.saveLocal();
+                console.log(`✅ ${year}년 ${month}월 데이터 로드 완료 (${docId})`);
+            } else {
+                console.log(`ℹ️ ${year}년 ${month}월 데이터가 없습니다. 빈 템플릿으로 유지합니다.`);
+                this.docExists = false;
+                // 로컬캐시도 제거 (데이터가 없으므로)
+                try { localStorage.removeItem(localKey); } catch (e) { }
+            }
         } catch (e) {
-            return null;
+            console.error('❌ Firebase 로드 실패:', e);
+            // 이미 위에서 템플릿으로 초기화했으므로 추가 작업 불필요
         }
+
+        // 메타정보 항상 현재 선택 월로 맞춤
+        this.data.meta.year = year;
+        this.data.meta.month = month;
+
+        // 마지막 선택 월 기억
+        localStorage.setItem('seah_cm_last_meta', JSON.stringify({ year, month }));
     }
 
     saveLocal() {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+            const localKey = this.getLocalKey(this.currentYear, this.currentMonth);
+            localStorage.setItem(localKey, JSON.stringify(this.data));
         } catch (e) {
             console.error('로컬 저장 실패:', e);
         }
@@ -76,7 +151,7 @@ class DataManager {
 
     async saveFirebase() {
         try {
-            await db.collection(COLLECTION).doc(DOC_ID).set(this.data);
+            await db.collection(COLLECTION).doc(this.activeDocId).set(this.data);
             return true;
         } catch (e) {
             console.error('Firebase 저장 실패:', e);
@@ -104,124 +179,313 @@ class DataManager {
         await this.save();
     }
 
+    // 보고 월 변경 (데이터 로드 포함)
+    async updateReportMonth(year, month) {
+        await this.loadMonth(year, month);
+    }
+
+    // 이전 월 데이터 복사하여 새 월 생성
+    async copyFromPreviousMonth(targetYear, targetMonth) {
+        let prevYear = targetYear;
+        let prevMonth = targetMonth - 1;
+        if (prevMonth < 1) {
+            prevMonth = 12;
+            prevYear -= 1;
+        }
+
+        const prevDocId = this.getDocId(prevYear, prevMonth);
+        try {
+            const doc = await db.collection(COLLECTION).doc(prevDocId).get();
+            if (doc.exists) {
+                this.data = doc.data();
+                this.data.meta.year = targetYear;
+                this.data.meta.month = targetMonth;
+                this.currentYear = targetYear;
+                this.currentMonth = targetMonth;
+                await this.save();
+                return true;
+            }
+        } catch (e) {
+            console.error('이전 월 복사 실패:', e);
+        }
+        return false;
+    }
+
+    // 저장된 월 목록 조회
+    async getAvailableMonths() {
+        try {
+            const snapshot = await db.collection(COLLECTION).get();
+            const months = [];
+            snapshot.forEach(doc => {
+                const match = doc.id.match(/^report_(\d{4})_(\d{2})$/);
+                if (match) {
+                    months.push({
+                        year: parseInt(match[1]),
+                        month: parseInt(match[2]),
+                        docId: doc.id
+                    });
+                }
+            });
+            months.sort((a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month));
+            return months;
+        } catch (e) {
+            console.error('월 목록 조회 실패:', e);
+            return [];
+        }
+    }
+
+    // 빈 템플릿 (데이터 미등록 월용 - 모든 수치 0/null)
+    getEmptyTemplate() {
+        return {
+            meta: { year: 2026, month: 1, company: '세아씨엠' },
+            costReduction: {
+                target: 0, actual24: 0, q4Compare: 0, changeRate: 0,
+                production: { avg24: 0, plan: 0, actual: 0 },
+                analysis: { comment: '', lines: {} },
+                lineData: { unitCost: {}, improvement: {} },
+                yieldRate: { y24: '-', y25: '-', m_prev: '-', m_goal: '-', m_actual: '-' },
+                totalImprovement: { m_actual: 0 },
+                productionMonthly: { y24: 0, y25: 0, m_prev: 0, m_goal: 0, m_actual: 0 }
+            },
+            linePerformance: {
+                costReduction: {},
+                production: {}
+            },
+            keyTasks: {
+                teamSummary: {
+                    '생산팀(냉연)': { division: '냉연', target: 0, monthly: 0, cumulative: 0, rate: 0 },
+                    '생산팀(칼라)': { division: '칼라', target: 0, monthly: 0, cumulative: 0, rate: 0 },
+                    '설비팀': { target: 0, monthly: 0, cumulative: 0, rate: 0 },
+                    '품질경영팀': { target: 0, monthly: 0, cumulative: 0, rate: 0 },
+                    '변화관리팀': { target: 0, monthly: 0, cumulative: 0, rate: 0 },
+                    '안전환경팀': { target: 0, monthly: 0, cumulative: 0, rate: 0 }
+                },
+                tasks: {
+                    '생산팀(냉연)': [], '생산팀(칼라)': [], '설비팀': [],
+                    '품질경영팀': [], '변화관리팀': [], '안전환경팀': []
+                }
+            },
+            equipEfficiency: {},
+            scrap: {
+                steel: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null), analysis: '' },
+                al: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null), analysis: '' }
+            },
+            yield: {
+                composite: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CPL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CGL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '1CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '2CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '3CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            },
+            tonPower: {
+                composite: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            },
+            operationRate: {
+                CPL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CRM: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CGL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '1CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '2CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '3CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            },
+            lng: {
+                CPL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CGL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '1CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '3CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            },
+            power: {
+                CPL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CRM: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CGL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '1CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '2CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '3CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            },
+            steam: {
+                purchase: { baseline: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                usageUnit: { baseline: 0, monthly: new Array(12).fill(null) },
+                selfProd2CCL: { baseline: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                selfProd3CCL: { baseline: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            },
+            consumables: {},
+            factoryKPI: {
+                disposal: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), avgInventory: 0, amount: 0, colors: 0, unitCost: 0, byType: {} },
+                disposalCost: { costMonthly: new Array(12).fill(null), unitMonthly: new Array(12).fill(null) },
+                semiProduct: { target: new Array(14).fill(0), actual: new Array(14).fill(0), diff: new Array(14).fill(0) }
+            },
+            complaints: {
+                customerComplaints: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), count: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 }, closed: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 }, compensation: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 } },
+                returns: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), count: { total1to11: 0, dec: 0, cumulative25: 0 }, volume: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 }, loss: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 } }
+            },
+            breakdown: {
+                timeTotal: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                countTotal: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                timeMech: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                countMech: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                timeElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                countElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            }
+        };
+    }
+
+    // 26년 1월 기본 데이터 (초기 세팅용)
     getDefaultData() {
         return {
             meta: {
-                year: 2025,
-                month: 12,
+                year: 2026,
+                month: 1,
                 company: '세아씨엠'
             },
             // 1. 제조원가 절감 현황
             costReduction: {
-                target: 5.43,
-                actual24: -4.39,
-                q4Compare: 3.62,
-                changeRate: -81,
+                target: 3.85,
+                actual24: 7.57,
+                q4Compare: 13.36,
+                changeRate: 196,
                 production: {
-                    avg24: 92433,
-                    plan: 95350,
-                    actual: 88867
+                    avg24: 93552,
+                    plan: 95690,
+                    actual: 93828
                 },
                 analysis: {
-                    comment: '2CCL 제외 주요 지표 개선됨',
+                    comment: 'CGL, 2CCL, 3CCL 주요 원단위 개선됨',
                     lines: {
-                        CPL: { decrease: '연료(1,207), 소모품(807)', increase: '수선비(1,635), 전력(597)' },
-                        CRM: { decrease: '소모품(2,563), 수선비(798)', increase: '전력(1,910)' },
-                        CGL: { decrease: '연료(3,003), 수선비(2,635), 소모품(1,164)', increase: '전력(1,833)' },
-                        '1CCL': { decrease: '연료(7,222), 수선비(2,636)', increase: '전력(1,528), 소모품(438)' },
-                        '2CCL': { decrease: '', increase: '전력(43,066), 연료(24,904), 수선(6,417), 소모품(19,957)' },
-                        '3CCL': { decrease: '연료(10,285), 수선(8,438)', increase: '소모품(6,104), 전력(4,020)' }
+                        CPL: { decrease: '소모품(212)', increase: '연료(1,420), 수선비(1,377), 전력(153)' },
+                        CRM: { decrease: '', increase: '수선비(2,939), 전력(1,033), 소모품(376)' },
+                        CGL: { decrease: '연료(1,396), 수선비(843), 소모품(331)', increase: '전력(311)' },
+                        '1CCL': { decrease: '연료(1,116)', increase: '전력(1,947), 소모품(5,043), 수선비(156)' },
+                        '2CCL': { decrease: '소모품(19,852), 수선(14,812), 연료(14,761), 전력(8,727)', increase: '' },
+                        '3CCL': { decrease: '소모품(6,492), 연료(3,858), 전력(2,369), 수선(1,138)', increase: '' }
                     }
                 },
                 lineData: {
                     unitCost: {
-                        CPL: { y24_4: 21984, y24: 23110, m7: 28422, m8: 22704, m9: 18774, m10: 18484, m11: 21649, m12: 23419 },
-                        CRM: { y24_4: 38812, y24: 40472, m7: 45287, m8: 37518, m9: 29373, m10: 28689, m11: 30945, m12: 37994 },
-                        CGL: { y24_4: 83115, y24: 90477, m7: 98721, m8: 91252, m9: 78120, m10: 80024, m11: 76217, m12: 87260 },
-                        '1CCL': { y24_4: 93313, y24: 101258, m7: 112384, m8: 102283, m9: 85122, m10: 88224, m11: 104529, m12: 106347 },
-                        '2CCL': { y24_4: 282412, y24: 295494, m7: 580158, m8: 669495, m9: 446154, m10: 664002, m11: 486704, m12: 613608 },
-                        '3CCL': { y24_4: 180577, y24: 202176, m7: 218846, m8: 182866, m9: 164213, m10: 156785, m11: 180442, m12: 213402 }
+                        CPL: { y24: 23110, y25: 22326, m1_prev: 21856, m1_goal: 21096, m1: 23773 },
+                        CRM: { y24: 40472, y25: 35577, m1_prev: 36841, m1_goal: 33617, m1: 39988 },
+                        CGL: { y24: 90477, y25: 86931, m1_prev: 93963, m1_goal: 82142, m1: 80879 },
+                        '1CCL': { y24: 101258, y25: 94907, m1_prev: 103179, m1_goal: 89678, m1: 99574 },
+                        '2CCL': { y24: 295494, y25: 464929, m1_prev: 398758, m1_goal: 439314, m1: 308048 },
+                        '3CCL': { y24: 202176, y25: 191082, m1_prev: 253821, m1_goal: 180554, m1: 156260 }
                     },
                     improvement: {
-                        CPL: { m5: 0.93, m6: 0.94, m7: -1.53, m8: 0.09, m9: 1.20, m10: 1.16, m11: 0.33, m12: -0.07 },
-                        CRM: { m5: 1.83, m6: 1.31, m7: -1.27, m8: 0.66, m9: 2.94, m10: 2.92, m11: 2.15, m12: 0.56 },
-                        CGL: { m5: 2.57, m6: 1.66, m7: -2.12, m8: -0.20, m9: 3.36, m10: 2.53, m11: 3.61, m12: 0.75 },
-                        '1CCL': { m5: 1.75, m6: 3.51, m7: -1.50, m8: -0.12, m9: 2.16, m10: 1.61, m11: -0.42, m12: -0.62 },
-                        '2CCL': { m5: -3.14, m6: -0.69, m7: -4.69, m8: -5.49, m9: -3.52, m10: -5.22, m11: -2.73, m12: -4.59 },
-                        '3CCL': { m5: 3.56, m6: 5.49, m7: -1.12, m8: 1.21, m9: 2.46, m10: 3.16, m11: 1.22, m12: -0.67 }
+                        CPL: { m1: -0.36 },
+                        CRM: { m1: -1.02 },
+                        CGL: { m1: 1.48 },
+                        '1CCL': { m1: -0.51 },
+                        '2CCL': { m1: 3.97 },
+                        '3CCL': { m1: 2.59 },
+                        yield: { m1: 1.41 }
                     }
                 },
-                yieldRate: { y24_4: '99.46%', y24: '99.47%', m7: '99.46%', m8: '99.39%', m9: '99.23%', m10: '99.45%', m11: '99.56%', m12: '99.52%' },
-                totalImprovement: { m5: 7.52, m6: 11.82, m7: -11.92, m8: -4.44, m9: 7.15, m10: 6.17, m11: 4.41, m12: -4.39 },
-                productionMonthly: { y24_4: 96204, y24: 92433, m7: 102537, m8: 88071, m9: 103764, m10: 94928, m11: 90220, m12: null }
+                yieldRate: { y24: '99.47%', y25: '99.45%', m1_prev: '99.37%', m1_goal: '99.54%', m1: '99.63%' },
+                totalImprovement: { m1: 7.57 },
+                productionMonthly: { y24: 96204, y25: 94066, m1_prev: 91475, m1_goal: 97735, m1: 93828 }
             },
 
             // 3. 라인별 실적
             linePerformance: {
                 costReduction: {
-                    CPL: { target: 0.48, y24: 0.24, q4: 1.02 },
-                    CRM: { target: 0.57, y24: 0.59, q4: 0.99 },
-                    CGL: { target: 1.31, y24: 0.61, q4: 2.54 },
-                    '1CCL': { target: 1.24, y24: -0.71, q4: 0.40 },
-                    '2CCL': { target: 0.77, y24: -4.27, q4: -4.82 },
-                    '3CCL': { target: 1.06, y24: -0.30, q4: 2.94 }
+                    CPL: { target: 0.48, y24: -0.34, q4: -0.46 },
+                    CRM: { target: 0.57, y24: -1.01, q4: -0.71 },
+                    CGL: { target: 1.31, y24: 2.18, q4: 3.90 },
+                    '1CCL': { target: 1.24, y24: -0.53, q4: 0.37 },
+                    '2CCL': { target: 0.77, y24: 4.09, q4: 2.41 },
+                    '3CCL': { target: 1.06, y24: 3.18, q4: 7.85 }
                 },
                 production: {
-                    CPL: { avg24: 24097, plan: 24900, actual: 23419 },
-                    CRM: { avg24: 23408, plan: 24400, actual: 22519 },
-                    CGL: { avg24: 23639, plan: 24400, actual: 23499 },
-                    '1CCL': { avg24: 12902, plan: 13930, actual: 12055 },
-                    '2CCL': { avg24: 3116, plan: 2750, actual: 1442 },
-                    '3CCL': { avg24: 5272, plan: 4970, actual: 5932 }
+                    CPL: { avg24: 24744, plan: 25580, actual: 25491 },
+                    CRM: { avg24: 24023, plan: 24640, actual: 23173 },
+                    CGL: { avg24: 24188, plan: 24840, actual: 24383 },
+                    '1CCL': { avg24: 12789, plan: 12700, actual: 10845 },
+                    '2CCL': { avg24: 1947, plan: 1410, actual: 2534 },
+                    '3CCL': { avg24: 5861, plan: 6520, actual: 7401 }
                 }
             },
 
             // 4. 주요과제 진행사항
             keyTasks: {
                 teamSummary: {
-                    '생산팀': { target: 32.8, monthly: 3.25, cumulative: 37.1, rate: 113 },
-                    '설비팀': { target: 39.4, monthly: 2.39, cumulative: 38.90, rate: 99 },
-                    '품질경영팀': { target: 3.86, monthly: 0.06, cumulative: 0.09, rate: 2 },
-                    '변화관리팀': { target: 4.5, monthly: 1.15, cumulative: 11.45, rate: 255 },
+                    '생산팀(냉연)': { division: '냉연', target: 16.02, monthly: 0.00, cumulative: 0.00, rate: 0 },
+                    '생산팀(칼라)': { division: '칼라', target: 8.90, monthly: 0.00, cumulative: 0.00, rate: 0 },
+                    '설비팀': { target: 16.14, monthly: 1.55, cumulative: 1.55, rate: 10 },
+                    '품질경영팀': { target: 1.82, monthly: 0.00, cumulative: 0.00, rate: 0 },
+                    '변화관리팀': { target: 2.38, monthly: 0.00, cumulative: 0.00, rate: 0 },
                     '안전환경팀': { target: 0, monthly: 0, cumulative: 0, rate: 0 }
                 },
                 tasks: {
-                    '생산팀': [
-                        { no: 1, line: 'CGL', name: 'Line Speed 최적화를 통한 생산성 37.8 T/Hr 달성', target: 2.2, monthly: 1.1, cumulative: 13.9, rate: 630, person: '장훈', schedule: [0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] },
-                        { no: 2, line: 'CGL', name: '소재 Loss 저감을 통한 A급 수율 0.07% 향상', target: 2.3, monthly: -0.2, cumulative: -3.6, rate: -157, person: '장훈', schedule: [0, 0, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2] },
-                        { no: 3, line: 'CGL', name: '도금 Pot 관련 대기 전력 1,200kWh/월 저감', target: 0.6, monthly: 0.2, cumulative: 1.3, rate: 218, person: '장훈', schedule: [0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] },
-                        { no: 4, line: 'CGL', name: '공연비 관리 고도화를 통한 LNG 19.96Nm³ 달성', target: 2.3, monthly: 0.0, cumulative: 1.4, rate: 63, person: '장훈', schedule: [0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] },
-                        { no: 5, line: 'CGL', name: 'Mode Change 시간 단축 통한 가동율 91% 달성-1', target: 2.5, monthly: 0.0, cumulative: 0.0, rate: 0, person: '장훈', schedule: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                        { no: 6, line: 'CGL', name: 'Pot Roll 사용기간 증대 통한 가공비 220원/톤 절감', target: 0.6, monthly: 0.1, cumulative: 2.8, rate: 464, person: '장훈', schedule: [0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] },
-                        { no: 7, line: 'CRM', name: '짝수 Pass율 30% 달성', target: 6.3, monthly: 0.1, cumulative: 4.6, rate: 73, person: '장훈', schedule: [0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] },
-                        { no: 8, line: 'CPL', name: '발주폭 조정을 통한 Chopper Scrap 저감', target: 1.9, monthly: 0.3, cumulative: 0.9, rate: 46, person: '이대현', schedule: [0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] }
+                    '생산팀(냉연)': [
+                        { no: 1, line: 'CPL', name: '선단부 스크랩 저감으로 수율 0.04% 향상', target: 0.2, monthly: 0.03, cumulative: 0.0, rate: 8, person: '이대현', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 2, line: 'CPL', name: '후판/대폭 생산성 향상 0.6톤/hr 향상', target: 0.9, monthly: 0, cumulative: 0, rate: 0, person: '이대현', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 3, line: 'CRM', name: '전력 Peak 하향 관리로 전력 원단위 5.4% 개선', target: 1.9, monthly: -0.03, cumulative: -0.03, rate: -2, person: '이대현', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 4, line: 'CRM', name: '압연유 사용량 저감으로 소모품비 절감', target: 0.4, monthly: 0.0, cumulative: 0.01, rate: 1, person: '이대현', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 5, line: 'CRM', name: 'CRM 운전 자동화', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '이대현', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 6, line: 'CGL', name: '불량 스크랩 원인개선으로 수율 향상(0.24%)', target: 4.5, monthly: 0.4, cumulative: 0.4, rate: 9, person: '장훈', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 7, line: 'CGL', name: '평균 L/S 상향으로 톤파워 0.23 향상', target: 1.5, monthly: -0.1, cumulative: -0.1, rate: -10, person: '장훈', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 8, line: 'CGL', name: '생산 비가동 저감으로 실가동율 향상 2.4%', target: 2.5, monthly: 0.4, cumulative: 0.4, rate: 14, person: '장훈', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 9, line: 'CGL', name: '에너지(전력/LNG) 비용 3% 절감', target: 1.1, monthly: 0.2, cumulative: 0.2, rate: 20, person: '장훈', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 10, line: 'CGL', name: 'Dual Snorkel 효과 극대화', target: 0.4, monthly: 0.0, cumulative: 0.0, rate: 0, person: '장훈', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
                     ],
-                    '설비팀': [],
-                    '품질경영팀': [],
-                    '변화관리팀': [],
-                    '안전환경팀': []
+                    '생산팀(칼라)': [
+                        { no: 1, line: '1CCL', name: '비가동 저감을 통한 가동율 향상(1.21%)', target: 1.8, monthly: -0.6, cumulative: -0.6, rate: -35, person: '황의범', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 2, line: '2CCL', name: 'Exhaust Fan 가동 관리 강화 → LNG 저감', target: 0.7, monthly: 0.1, cumulative: 0.1, rate: 17, person: '황의범', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 3, line: '2CCL', name: 'Tension Leveller 오염 개선 실가동율 향상', target: 0.4, monthly: 0.3, cumulative: 0.3, rate: 72, person: '황의범', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 4, line: '3CCL', name: 'Print Pint 제품 Speed 향상 톤파워 향상', target: 2.3, monthly: -0.5, cumulative: -0.5, rate: -21, person: '유진상', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 5, line: '3CCL', name: 'Print 제품 단판 관리를 통한 실가동율 향상', target: 3.1, monthly: 1.2, cumulative: 1.2, rate: 39, person: '유진상', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 6, line: '3CCL', name: '작업방법 변경 및 Waiting Mode 활용 LNG 저감', target: 0.7, monthly: 0.1, cumulative: 0.1, rate: 12, person: '유진상', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+                    ],
+                    '설비팀': [
+                        { no: 1, line: '기계', name: 'AIR COMPRESSOR 합리화', target: 2.1, monthly: 0.0, cumulative: 0.0, rate: 0, person: '안봉찬', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 2, line: '기계', name: '#1CCL 배기폐열 회수시스템 도입', target: 3.5, monthly: 0.3, cumulative: 0.3, rate: 8, person: '이상민', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 3, line: '기계', name: 'CGL 배기폐열 회수시스템 도입', target: 4.6, monthly: 0.5, cumulative: 0.5, rate: 12, person: '이상민', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 4, line: '기계', name: 'CGL 퍼니스 공연비관리 체계화', target: 0.7, monthly: 0.0, cumulative: 0.0, rate: 0, person: '이상민', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 5, line: '전기', name: '태양광발전 자가사용 (1기, 3기, 자재창고)', target: 4.0, monthly: 0.4, cumulative: 0.4, rate: 10, person: '홍준오', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 6, line: '전기', name: 'BLOW FAN & 냉각탑 전력절감개선', target: 1.3, monthly: 0.2, cumulative: 0.2, rate: 19, person: '박성만', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 7, line: '전기', name: '전력 피크 기본료 감축', target: 0.1, monthly: 0.1, cumulative: 0.1, rate: 100, person: '이정석', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+                    ],
+                    '품질경영팀': [
+                        { no: 1, line: '품질', name: '고객 불만 개선으로 손실비용 절감', target: 1.3, monthly: 0.01, cumulative: 0.0, rate: 1, person: '김상순', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 2, line: '품질', name: '결로 예방을 통한 백청 Loss 절감', target: 0.5, monthly: 0.00, cumulative: 0.0, rate: 0, person: '황정연', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 3, line: '품질', name: '구매소재 Claim 강화', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '황정연', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 4, line: '품질', name: '품질 인증 유지 및 PO(KS, JIS) 신규취득', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '이종혁', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+                    ],
+                    '변화관리팀': [
+                        { no: 1, line: '변·관', name: '거점 물류 창고 운영 및 적재 환경개선', target: 2.4, monthly: 0.0, cumulative: 0.0, rate: 0, person: '최예찬', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 2, line: '변·관', name: '로컬 창고 전산화로 재고관리 체계 구축', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '-', schedule: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 3, line: '변·관', name: '반제품 장기재고 50% 감소', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '이정호', schedule: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 4, line: '변·관', name: '보세공장을 통한 경쟁력 강화', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '김윤성', schedule: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+                    ],
+                    '안전환경팀': [
+                        { no: 1, line: '환경', name: '환경 시설 법적 RISK 상시 관리 시행', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '박주현', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 2, line: '안전', name: '자율 안전문화 조성', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '정지원', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 3, line: '안전', name: '안전 환경 시스템 고도화(PSM, ISO)', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '황준하', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 4, line: '업·지', name: '계층별 소통 활성화', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '이기호', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                        { no: 5, line: '업·지', name: '직무역량 교육 강화', target: 0, monthly: 0, cumulative: 0, rate: 0, person: '이기호', schedule: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+                    ]
                 }
             },
+
 
             // 주요지표 - 설비종합효율
             equipEfficiency: {
                 CGL: {
                     target: 87.72,
                     yearly: [85.3, 82.0, 86.7, 88.13],
-                    monthly: new Array(12).fill(null),
-                    analysis: ''
+                    monthly: [89.8, 88.4, 86.7, 87.2, 87.9, 91.8, 89.4, 88.5, 87.9, 86.4, 85.2, 88.3],
+                    analysis: '목표대비 0.6%p 향상, 실가동율 99.97%, 25년 월 최고 수준'
                 },
                 '1CCL': {
                     target: 62.83,
                     yearly: [null, 55.3, 63.9, 61.65],
-                    monthly: new Array(12).fill(null),
-                    analysis: ''
+                    monthly: [60.8, 63.3, 62.1, 65.5, 61.4, 61.3, 63.7, 62.6, 63.9, 64.4, 59.7, 52.3],
+                    analysis: '목표대비 10.53%p 미달, 전월대비 실가동율 3.41%하락'
                 },
                 '3CCL': {
                     target: 45,
                     yearly: [45.9, 45.8, 43.4, 44.5],
-                    monthly: new Array(12).fill(null),
-                    analysis: ''
+                    monthly: [42.1, 41.1, 34.1, 50.3, 47.4, 43.4, 42.9, 37.9, 55.2, 46.9, 46.5, null],
+                    analysis: '목표대비 1.53%p 초과'
                 }
             },
 
@@ -245,50 +509,32 @@ class DataManager {
 
             // 주요지표 - A급 수율
             yield: {
-                composite: { target: 99.57, yearly: [99.43, 99.47, 99.43, 99.44], monthly: new Array(12).fill(null) },
-                CPL: { target: 97.82, yearly: [97.72, 97.71, 97.78, 97.77], monthly: new Array(12).fill(null) },
-                CGL: { target: 100.4, yearly: [99.93, 99.92, 100.07, 100.08], monthly: new Array(12).fill(null) },
-                '1CCL': { target: 100.4, yearly: [99.99, 100.29, 100.23, 100.48], monthly: new Array(12).fill(null) },
-                '2CCL': { target: 100.3, yearly: [100.15, 100.12, 99.68, 99.59], monthly: new Array(12).fill(null) },
-                '3CCL': { target: 99.82, yearly: [100.03, 100.35, 99.49, 99.71], monthly: new Array(12).fill(null) }
-            },
-
-            // 주요지표 - 톤파워
-            tonPower: {
-                CGL: {
-                    target: 37.8,
-                    yearly: [37.00, 35.50, 37.50, 39.58],
-                    monthly: new Array(12).fill(null),
-                    index: new Array(16).fill(null),
-                    analysis: ''
-                },
-                '1CCL': {
-                    target: 25.5,
-                    yearly: [22.80, 23.90, 24.05, 23.65],
-                    monthly: new Array(12).fill(null),
-                    index: new Array(16).fill(null),
-                    analysis: ''
-                }
+                composite: { target: 99.57, yearly: [99.43, 99.47, 99.43, 99.63], monthly: [99.63, null, null, null, null, null, null, null, null, null, null, null] },
+                CPL: { target: 97.82, yearly: [97.72, 97.71, 97.78, 97.80], monthly: [97.80, null, null, null, null, null, null, null, null, null, null, null] },
+                CGL: { target: 99.85, yearly: [99.82, 99.80, 99.81, 99.85], monthly: [99.85, null, null, null, null, null, null, null, null, null, null, null] },
+                '1CCL': { target: 99.70, yearly: [99.65, 99.67, 99.61, 99.70], monthly: [99.70, null, null, null, null, null, null, null, null, null, null, null] },
+                '2CCL': { target: 99.80, yearly: [99.78, 99.75, 99.82, 99.85], monthly: [99.85, null, null, null, null, null, null, null, null, null, null, null] },
+                '3CCL': { target: 99.85, yearly: [99.80, 99.79, 99.84, 99.90], monthly: [99.90, null, null, null, null, null, null, null, null, null, null, null] }
             },
 
             // 주요지표 - 실가동률
             operationRate: {
-                composite: { target: 90.87, yearly: [88.03, 86.48, 86.47, 86.48], monthly: new Array(12).fill(null) },
-                CRM: { target: 96.60, yearly: [95.68, 96.02, 96.55, 96.60], monthly: new Array(12).fill(null) },
-                CGL: { target: 99.00, yearly: [98.78, 98.84, 98.38, 98.44], monthly: new Array(12).fill(null) },
-                '1CCL': { target: 85.00, yearly: [84.62, 80.09, 77.46, 82.06], monthly: new Array(12).fill(null) },
-                '2CCL': { target: 72.00, yearly: [70.98, 70.25, 67.91, 68.32], monthly: new Array(12).fill(null) },
-                '3CCL': { target: 75.00, yearly: [69.46, 72.10, 64.73, 69.34], monthly: new Array(12).fill(null) }
+                composite: { target: 90.87, yearly: [88.03, 86.48, 86.47, 88.50], monthly: [88.50, null, null, null, null, null, null, null, null, null, null, null] },
+                CRM: { target: 96.60, yearly: [95.68, 96.02, 96.55, 96.60], monthly: [96.60, null, null, null, null, null, null, null, null, null, null, null] },
+                CGL: { target: 95.0, yearly: [92.1, 93.4, 94.5, 96.2], monthly: [96.2, null, null, null, null, null, null, null, null, null, null, null] },
+                '1CCL': { target: 85.0, yearly: [80.5, 82.1, 84.4, 86.5], monthly: [86.5, null, null, null, null, null, null, null, null, null, null, null] },
+                '2CCL': { target: 80.0, yearly: [75.2, 78.4, 79.1, 81.2], monthly: [81.2, null, null, null, null, null, null, null, null, null, null, null] },
+                '3CCL': { target: 70.0, yearly: [65.4, 68.1, 69.4, 72.3], monthly: [72.3, null, null, null, null, null, null, null, null, null, null, null] }
             },
 
             // 주요지표 - LNG원단위
             lng: {
-                composite: { target: 17.13, yearly: [19.70, 20.60, 18.42, 16.57], monthly: new Array(12).fill(null) },
-                CPL: { target: 2.90, yearly: [6.41, 4.64, 2.94, 2.94], monthly: new Array(12).fill(null) },
-                CGL: { target: 19.96, yearly: [20.02, 21.14, 20.83, 20.25], monthly: new Array(12).fill(null) },
-                '1CCL': { target: 22.04, yearly: [25.56, 25.93, 24.77, 19.88], monthly: new Array(12).fill(null) },
-                '2CCL': { target: 54.00, yearly: [67.46, 70.99, 58.40, 67.29], monthly: new Array(12).fill(null) },
-                '3CCL': { target: 35.57, yearly: [79.80, 52.02, 38.79, 38.74], monthly: new Array(12).fill(null) }
+                composite: { target: 17.13, yearly: [19.70, 20.60, 18.42, 16.57], monthly: [16.57, null, null, null, null, null, null, null, null, null, null, null] },
+                CPL: { target: 2.90, yearly: [6.41, 4.64, 2.94, 2.94], monthly: [2.94, null, null, null, null, null, null, null, null, null, null, null] },
+                CGL: { target: 20.0, yearly: [22.4, 21.5, 20.8, 19.5], monthly: [19.5, null, null, null, null, null, null, null, null, null, null, null] },
+                '1CCL': { target: 35.0, yearly: [38.2, 37.1, 36.4, 34.2], monthly: [34.2, null, null, null, null, null, null, null, null, null, null, null] },
+                '2CCL': { target: 45.0, yearly: [48.5, 47.1, 46.2, 44.1], monthly: [44.1, null, null, null, null, null, null, null, null, null, null, null] },
+                '3CCL': { target: 40.0, yearly: [42.1, 41.5, 40.8, 38.5], monthly: [38.5, null, null, null, null, null, null, null, null, null, null, null] }
             },
 
             // 주요지표 - 전력원단위
@@ -359,38 +605,31 @@ class DataManager {
             // 주요지표 - 고객불만 및 반품
             complaints: {
                 customerComplaints: {
-                    yearly: [2.3, 2.2, 1.83, null],
+                    yearly: [null, null, null, null],
                     monthly: new Array(12).fill(null),
-                    count: { total1to11: 0, dec: 0, cumulative25: 0, y24: 27 },
-                    closed: { total1to11: 0, dec: 0, cumulative25: 0, y24: 26 },
-                    compensation: { total1to11: 0, dec: 0, cumulative25: 0, y24: 2.4 }
+                    count: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 },
+                    closed: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 },
+                    compensation: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 }
                 },
                 returns: {
-                    yearly: [47, 55, 52.33, null],
+                    yearly: [null, null, null, null],
                     monthly: new Array(12).fill(null),
                     count: { total1to11: 0, dec: 0, cumulative25: 0 },
-                    volume: { total1to11: 0, dec: 0, cumulative25: 0, y24: 569 },
-                    loss: { total1to11: 0, dec: 0, cumulative25: 0, y24: 16.2 }
+                    volume: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 },
+                    loss: { total1to11: 0, dec: 0, cumulative25: 0, y24: 0 }
                 }
             },
 
             // 주요지표 - 설비고장
             breakdown: {
-                timeTotal: { target: 11.45, yearly: [12, 13, 11, 11.75], monthly: new Array(12).fill(null) },
-                countTotal: { target: 7.3, yearly: [6, null, 10, 6.67], monthly: new Array(12).fill(null) },
-                timeMech: { target: 5.4, yearly: [6, 12, 6, 5.58], monthly: new Array(12).fill(null) },
-                countMech: { target: 3.6, yearly: [3, 5, 3, 2.92], monthly: new Array(12).fill(null) },
-                timeElec: { target: 6.0, yearly: [6, 21, 7, 6.33], monthly: new Array(12).fill(null) },
-                countElec: { target: 5.1, yearly: [3, 12, 6, 4.00], monthly: new Array(12).fill(null) }
+                timeTotal: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                countTotal: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                timeMech: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                countMech: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                timeElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                countElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
             }
         };
-    }
-
-    // 보고 월 업데이트
-    async updateReportMonth(year, month) {
-        this.data.meta.year = year;
-        this.data.meta.month = month;
-        await this.save();
     }
 
     // 특정 섹션 데이터 가져오기
@@ -427,10 +666,81 @@ class DataManager {
         }
     }
 
-    // 데이터 초기화
+    // 현재 월 데이터 초기화 (삭제 처리하여 '신규 작성' 상태로 되돌림)
     async reset() {
-        this.data = this.getDefaultData();
-        await this.save();
+        const docId = this.activeDocId;
+        const localKey = this.getLocalKey(this.currentYear, this.currentMonth);
+
+        try {
+            console.log(`Firestore 문서 삭제 시도: ${docId}`);
+            // 1. Firebase에서 삭제
+            await db.collection(COLLECTION).doc(docId).delete();
+            // 2. 로컬 캐시 삭제
+            localStorage.removeItem(localKey);
+
+            // 3. 상태 초기화
+            this.data = this.getEmptyTemplate();
+            this.data.meta.year = this.currentYear;
+            this.data.meta.month = this.currentMonth;
+            this.docExists = false;
+        } catch (e) {
+            console.error('초기화(삭제) 실패:', e);
+            // 삭제 실패 시 빈 데이터로 덮어쓰기라도 수행
+            this.data = this.getEmptyTemplate();
+            await this.save();
+        }
+    }
+
+    // 파일 업로드 (Firebase Storage)
+    async uploadFile(file, path) {
+        try {
+            const fileRef = storage.ref().child(path);
+            const snapshot = await fileRef.put(file);
+            const url = await snapshot.ref.getDownloadURL();
+            return url;
+        } catch (e) {
+            console.error('파일 업로드 실패:', e);
+            throw e;
+        }
+    }
+
+    // Storage 파일 목록 조회
+    async listStorageFiles(folderPath = '') {
+        try {
+            const listRef = storage.ref().child(folderPath || '/');
+            const result = await listRef.listAll();
+            const files = [];
+
+            // 파일 정보 수집
+            for (const itemRef of result.items) {
+                try {
+                    const url = await itemRef.getDownloadURL();
+                    const metadata = await itemRef.getMetadata();
+                    files.push({
+                        name: itemRef.name,
+                        fullPath: itemRef.fullPath,
+                        url: url,
+                        size: metadata.size,
+                        contentType: metadata.contentType,
+                        updated: metadata.updated,
+                        timeCreated: metadata.timeCreated
+                    });
+                } catch (e) {
+                    console.warn('파일 정보 로드 실패:', itemRef.name, e);
+                }
+            }
+
+            // 하위 폴더도 탐색
+            const folders = result.prefixes.map(p => ({
+                name: p.name,
+                fullPath: p.fullPath
+            }));
+
+            return { files, folders };
+        } catch (e) {
+            console.error('Storage 목록 조회 실패:', e);
+            return { files: [], folders: [] };
+        }
     }
 }
 

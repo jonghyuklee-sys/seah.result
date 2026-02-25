@@ -48,13 +48,12 @@
     const modalCancel = document.getElementById('modalCancel');
     const modalConfirm = document.getElementById('modalConfirm');
     const btnSaveAll = document.getElementById('btnSaveAll');
-    const btnExport = document.getElementById('btnExport');
     const toast = document.getElementById('toast');
 
     // ==========================================
     // Navigation
     // ==========================================
-    function navigateTo(sectionId) {
+    async function navigateTo(sectionId) {
         if (!SectionRenderers[sectionId]) {
             console.warn(`섹션 '${sectionId}'에 대한 렌더러가 없습니다.`);
             showEmptyState(sectionId);
@@ -74,8 +73,8 @@
         // Destroy existing charts
         destroyAllCharts();
 
-        // Render section
-        SectionRenderers[sectionId](contentArea);
+        // Render section (async 지원)
+        await SectionRenderers[sectionId](contentArea);
 
         // Close mobile sidebar
         sidebar.classList.remove('open');
@@ -188,7 +187,9 @@
                         </div>
                     `).join('')}
                 `;
-            } else if (subKey === 'lineData') {
+                const currentMonthLabel = `${dataManager.currentMonth}월`;
+                const prevYearMonthLabel = `'${(dataManager.currentYear - 1).toString().slice(-2)} ${dataManager.currentMonth}월`;
+
                 formHtml = `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">라인별 원단위(원/톤)과 개선금액(억원) 데이터를 입력해주세요.</p>`;
                 LINES.forEach(l => {
                     const uc = data.lineData?.unitCost?.[l] || {};
@@ -196,17 +197,15 @@
                     formHtml += `
                         <div class="form-section-title">${l} - 원단위</div>
                         <div class="form-grid">
-                            <div class="form-group"><label>24'4</label><input type="number" name="uc_${l}_y24_4" value="${uc.y24_4 ?? ''}"></div>
                             <div class="form-group"><label>24년</label><input type="number" name="uc_${l}_y24" value="${uc.y24 ?? ''}"></div>
-                            ${['m7', 'm8', 'm9', 'm10', 'm11', 'm12'].map(m => `
-                                <div class="form-group"><label>${m.replace('m', '')}월</label><input type="number" name="uc_${l}_${m}" value="${uc[m] ?? ''}"></div>
-                            `).join('')}
+                            <div class="form-group"><label>25년</label><input type="number" name="uc_${l}_y25" value="${uc.y25 ?? ''}"></div>
+                            <div class="form-group"><label>${prevYearMonthLabel}</label><input type="number" name="uc_${l}_m_prev" value="${uc.m_prev ?? uc.m1_prev ?? ''}"></div>
+                            <div class="form-group"><label>${dataManager.currentYear % 100}년 목표</label><input type="number" name="uc_${l}_m_goal" value="${uc.m_goal ?? uc.m1_goal ?? ''}"></div>
+                            <div class="form-group"><label>${currentMonthLabel} 실적</label><input type="number" name="uc_${l}_m_actual" value="${uc.m_actual ?? uc.m1 ?? ''}"></div>
                         </div>
                         <div class="form-section-title">${l} - 개선금액</div>
                         <div class="form-grid">
-                            ${['m5', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11', 'm12'].map(m => `
-                                <div class="form-group"><label>${m.replace('m', '')}월</label><input type="number" step="any" name="imp_${l}_${m}" value="${imp[m] ?? ''}"></div>
-                            `).join('')}
+                             <div class="form-group"><label>${currentMonthLabel}</label><input type="number" step="any" name="imp_${l}_m_actual" value="${imp.m_actual ?? imp.m1 ?? ''}"></div>
                         </div>
                     `;
                 });
@@ -310,6 +309,7 @@
             let val = inp.value.trim();
             if (inp.type === 'number') {
                 val = val === '' ? null : parseFloat(val);
+                if (isNaN(val)) val = null;
             }
             values[name] = val;
         });
@@ -338,11 +338,11 @@
                 LINES.forEach(l => {
                     if (!data.lineData.unitCost[l]) data.lineData.unitCost[l] = {};
                     if (!data.lineData.improvement[l]) data.lineData.improvement[l] = {};
-                    ['y24_4', 'y24', 'm7', 'm8', 'm9', 'm10', 'm11', 'm12'].forEach(k => {
+                    ['y24', 'y25', 'm_prev', 'm_goal', 'm_actual'].forEach(k => {
                         const v = values[`uc_${l}_${k}`];
                         if (v !== undefined) data.lineData.unitCost[l][k] = v;
                     });
-                    ['m5', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11', 'm12'].forEach(k => {
+                    ['m_actual'].forEach(k => {
                         const v = values[`imp_${l}_${k}`];
                         if (v !== undefined) data.lineData.improvement[l][k] = v;
                     });
@@ -447,6 +447,12 @@
         // 데이터 매니저 초기화 (Firebase 연동 대기)
         await dataManager.init();
 
+        // 초기 보고 월 선택 드롭다운 설정 (데이터 로드 후 수행)
+        const meta = dataManager.data.meta;
+        selectYear.value = meta.year;
+        selectMonth.value = meta.month;
+        reportMonth.textContent = `${meta.year}년 ${meta.month}월`;
+
         // Menu navigation
         document.querySelectorAll('.menu-item').forEach(item => {
             item.addEventListener('click', (e) => {
@@ -474,9 +480,66 @@
         const updateMonth = async () => {
             const year = parseInt(selectYear.value);
             const month = parseInt(selectMonth.value);
+
+            // 로딩 표시
+            reportMonth.textContent = `로딩 중...`;
+            contentArea.innerHTML = `
+                <div class="card" style="margin-top:40px">
+                    <div class="card-body" style="text-align:center;padding:60px">
+                        <i class="fas fa-spinner fa-spin" style="font-size:32px;color:var(--seah-red);margin-bottom:16px;display:block"></i>
+                        <p style="font-size:15px;color:var(--text-secondary)">${year}년 ${month}월 데이터를 불러오는 중...</p>
+                    </div>
+                </div>`;
+
+            // 데이터 로드 (loadMonth에서 docExists 플래그도 설정됨)
             await dataManager.updateReportMonth(year, month);
             reportMonth.textContent = `${year}년 ${month}월`;
+
+            // 해당 월에 데이터가 없으면 안내 표시
+            if (!dataManager.docExists) {
+                contentArea.innerHTML = `
+                    <div class="card" style="margin-top:20px">
+                        <div class="card-body" style="text-align:center;padding:40px">
+                            <i class="fas fa-folder-open" style="font-size:48px;color:var(--text-light);margin-bottom:16px;display:block"></i>
+                            <h3 style="margin-bottom:8px">${year}년 ${month}월 보고서</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:24px">아직 입력된 데이터가 없습니다. 아래 옵션을 선택해 주세요.</p>
+                            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+                                <button class="btn-save-all" onclick="startNewMonth()" style="padding:12px 24px">
+                                    <i class="fas fa-plus"></i> 새로 작성하기
+                                </button>
+                                <button class="btn-edit" onclick="copyPreviousMonth()" style="padding:12px 24px;font-size:14px">
+                                    <i class="fas fa-copy"></i> 이전 월 데이터 복사
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+
+                window.startNewMonth = async () => {
+                    await dataManager.save();
+                    navigateTo(currentSection);
+                    showToast(`${year}년 ${month}월 새 보고서가 파이어베이스에 생성되었습니다.`);
+                };
+                window.copyPreviousMonth = async () => {
+                    contentArea.innerHTML = `
+                        <div class="card" style="margin-top:40px">
+                            <div class="card-body" style="text-align:center;padding:60px">
+                                <i class="fas fa-spinner fa-spin" style="font-size:32px;color:var(--seah-red);margin-bottom:16px;display:block"></i>
+                                <p>이전 월 데이터를 복사 중...</p>
+                            </div>
+                        </div>`;
+                    const success = await dataManager.copyFromPreviousMonth(year, month);
+                    if (success) {
+                        showToast('이전 월 데이터가 복사되었습니다. 수정 후 저장해 주세요.');
+                    } else {
+                        showToast('이전 월 데이터가 없습니다. 새로 작성합니다.');
+                    }
+                    navigateTo(currentSection);
+                };
+                return;
+            }
+
             navigateTo(currentSection);
+            showToast(`${year}년 ${month}월 보고서를 불러왔습니다.`);
         };
         selectYear.addEventListener('change', updateMonth);
         selectMonth.addEventListener('change', updateMonth);
@@ -488,19 +551,43 @@
             if (e.target === modalOverlay) closeModal();
         });
         modalConfirm.addEventListener('click', async () => {
-            if (currentModalData) await currentModalData();
+            if (currentModalData) {
+                try {
+                    modalConfirm.disabled = true;
+                    modalConfirm.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
+                    await currentModalData();
+                } catch (e) {
+                    console.error('저장 에러:', e);
+                    alert(`저장 중 오류가 발생했습니다: ${e.message}`);
+                } finally {
+                    modalConfirm.disabled = false;
+                    modalConfirm.textContent = '저장';
+                }
+            }
         });
 
         // Save all
         btnSaveAll.addEventListener('click', async () => {
-            await dataManager.save();
-            showToast('모든 데이터가 파이어베이스에 저장되었습니다.');
-        });
+            try {
+                btnSaveAll.disabled = true;
+                const originalHtml = btnSaveAll.innerHTML;
+                btnSaveAll.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
 
-        // Export
-        btnExport.addEventListener('click', () => {
-            dataManager.exportData();
-            showToast('보고서 데이터가 내보내졌습니다.');
+                const success = await dataManager.save();
+                if (success) {
+                    const y = dataManager.currentYear;
+                    const m = dataManager.currentMonth;
+                    showToast(`${y}년 ${m}월 데이터가 저장되었습니다.`);
+                } else {
+                    alert('파이어베이스 저장에 실패했습니다. 네트워크 상태를 확인해 주세요.');
+                }
+            } catch (e) {
+                console.error('전체 저장 에러:', e);
+                alert(`저장 중 오류가 발생했습니다: ${e.message}`);
+            } finally {
+                btnSaveAll.disabled = false;
+                btnSaveAll.innerHTML = '<i class="fas fa-save"></i> 전체 저장';
+            }
         });
 
         // Keyboard shortcuts
@@ -509,12 +596,6 @@
                 closeModal();
             }
         });
-
-        // Set initial report month display
-        const meta = dataManager.data.meta;
-        selectYear.value = meta.year;
-        selectMonth.value = meta.month;
-        reportMonth.textContent = `${meta.year}년 ${meta.month}월`;
 
         // Load initial section
         navigateTo('dashboard');
@@ -540,7 +621,7 @@
                             <th>과제명</th>
                             <th style="width:70px">목표</th>
                             <th style="width:70px">당월</th>
-                            <th style="width:70px">누격</th>
+                            <th style="width:70px">누적</th>
                             <th style="width:60px">진도%</th>
                             <th style="width:70px">담당</th>
                             <th style="width:40px">삭제</th>
@@ -549,14 +630,14 @@
                     <tbody id="modalTaskTableBody">
                         ${tasks.map((t, i) => `
                             <tr>
-                                <td><input type="number" name="no_${i}" value="${t.no || i + 1}"></td>
-                                <td><input type="text" name="line_${i}" value="${t.line || ''}"></td>
-                                <td><input type="text" name="name_${i}" value="${t.name || ''}"></td>
-                                <td><input type="number" step="any" name="target_${i}" value="${t.target ?? ''}"></td>
-                                <td><input type="number" step="any" name="monthly_${i}" value="${t.monthly ?? ''}"></td>
-                                <td><input type="number" step="any" name="cumulative_${i}" value="${t.cumulative ?? ''}"></td>
-                                <td><input type="number" name="rate_${i}" value="${t.rate ?? ''}"></td>
-                                <td><input type="text" name="person_${i}" value="${t.person || ''}"></td>
+                                <td><input type="number" name="no_${i}" value="${t.no}"></td>
+                                <td><input type="text" name="line_${i}" value="${t.line}"></td>
+                                <td><input type="text" name="name_${i}" value="${t.name}"></td>
+                                <td><input type="number" step="any" name="target_${i}" value="${t.target}"></td>
+                                <td><input type="number" step="any" name="monthly_${i}" value="${t.monthly}"></td>
+                                <td><input type="number" step="any" name="cumulative_${i}" value="${t.cumulative}"></td>
+                                <td><input type="number" name="rate_${i}" value="${t.rate}"></td>
+                                <td><input type="text" name="person_${i}" value="${t.person}"></td>
                                 <td><button class="btn-remove-task" onclick="removeTaskRow(this)">&times;</button></td>
                             </tr>
                         `).join('')}
@@ -592,6 +673,46 @@
             tbody.appendChild(newRow);
         };
 
+        // PDF 업로드 핸들러
+        window.handleTaskPdfUpload = async (input, team, idx) => {
+            const file = input.files[0];
+            if (!file) return;
+
+            const label = input.closest('label');
+            const originalHtml = label.innerHTML;
+            label.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // 로딩 표시
+            label.style.pointerEvents = 'none';
+
+            try {
+                const year = selectYear.value;
+                const month = selectMonth.value;
+                const path = `reports/${year}/${month}/tasks/${team}/${Date.now()}_${file.name}`;
+                const url = await dataManager.uploadFile(file, path);
+
+                // UI 업데이트
+                const cell = input.closest('.pdf-cell');
+                cell.querySelector('input[type="hidden"]').value = url;
+
+                // 보기 버튼 추가 (기존 버튼 있으면 교체)
+                let viewBtn = cell.querySelector('.btn-pdf-view');
+                if (!viewBtn) {
+                    viewBtn = document.createElement('a');
+                    viewBtn.className = 'btn-pdf-view';
+                    viewBtn.target = '_blank';
+                    viewBtn.title = '보기';
+                    viewBtn.innerHTML = '<i class="fas fa-file-pdf"></i>';
+                    cell.querySelector('.pdf-controls').prepend(viewBtn);
+                }
+                viewBtn.href = url;
+
+                showToast('PDF 파일이 저장소에 업로드되었습니다.');
+            } catch (e) {
+                showToast('PDF 업로드에 실패했습니다.');
+            } finally {
+                label.innerHTML = originalHtml;
+                label.style.pointerEvents = '';
+            }
+        };
         openModal(`${team} - 주요 과제 편집`, formHtml, () => {
             saveKeyTaskData(team);
         });
@@ -608,12 +729,13 @@
             const inputs = row.querySelectorAll('input');
             const task = {};
             inputs.forEach(inp => {
-                const key = inp.name.split('_')[0];
+                const namePart = inp.name.split('_')[0];
                 let val = inp.value.trim();
                 if (inp.type === 'number') {
                     val = val === '' ? 0 : parseFloat(val);
+                    if (isNaN(val)) val = 0;
                 }
-                task[key] = val;
+                task[namePart] = val;
             });
 
             // 기존 스케줄 유지 또는 새로 생성
@@ -630,6 +752,43 @@
         closeModal();
         navigateTo(currentSection);
         showToast(`${team} 과제 데이터가 파이어베이스에 저장되었습니다.`);
+    }
+
+    // 현재 월 데이터 초기화
+    window.resetSystem = async function () {
+        const y = dataManager.currentYear;
+        const m = dataManager.currentMonth;
+
+        if (!confirm(`${y}년 ${m}월 데이터를 기본값으로 초기화하시겠습니까?\n(해당 월의 저장된 데이터가 완전히 삭제됩니다)`)) {
+            return;
+        }
+
+        try {
+            // 버튼 비활성화 (중복 클릭 방지)
+            const btn = document.querySelector('.btn-reset');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 초기화 중...';
+
+            console.log(`${y}년 ${m}월 데이터 초기화 시작...`);
+            await dataManager.reset();
+
+            showToast(`${y}년 ${m}월 데이터가 초기화되었습니다.`);
+
+            // 삭제 확인 후 1초 뒤 새로고침
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } catch (e) {
+            console.error('초기화 중 오류 발생:', e);
+            alert('초기화 작업 중 오류가 발생했습니다. 다시 시도해 주세요.');
+            // 버튼 복구
+            const btn = document.querySelector('.btn-reset');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> 현재 월 데이터 초기화';
+            }
+        }
     }
 
     // ==========================================

@@ -486,6 +486,18 @@ body {
     gap: 20px;
 }
 
+.grid-6 {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+}
+
+.grid-keytasks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
 .grid-2-1 {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -522,14 +534,70 @@ body {
 }
 
 .summary-card {
-    background: linear-gradient(135deg, #fff 0%, #f8f9ff 100%);
+    background: #fff;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    padding: 20px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     transition: var(--transition);
+    position: relative;
+    overflow: hidden;
 }
+
+.summary-card.modern {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.summary-card.info {
+    border-top: 4px solid var(--info);
+}
+
+.summary-card.positive {
+    border-top: 4px solid var(--positive);
+}
+
+.summary-card.warning {
+    border-top: 4px solid var(--warning);
+}
+
+.summary-card.negative {
+    border-top: 4px solid var(--negative);
+}
+
+/* Team Specific Colors for Key Tasks */
+.summary-card.team-cold {
+    border-top: 4px solid #3b82f6;
+}
+
+/* 냉연 - 파랑 */
+.summary-card.team-color {
+    border-top: 4px solid #e11d48;
+}
+
+/* 칼라 - 빨강(장미) */
+.summary-card.team-equip {
+    border-top: 4px solid #059669;
+}
+
+/* 설비 - 초록 */
+.summary-card.team-qa {
+    border-top: 4px solid #9333ea;
+}
+
+/* 품질 - 보라 */
+.summary-card.team-change {
+    border-top: 4px solid #ea580c;
+}
+
+/* 변화 - 오렌지 */
+.summary-card.team-safety {
+    border-top: 4px solid #ca8a04;
+}
+
+/* 안전 - 황금색 */
 
 .summary-card:hover {
     transform: translateY(-2px);
@@ -1339,4 +1407,36 @@ body {
     font-weight: 600;
     margin-left: 8px;
     border: 1px solid rgba(26, 46, 90, 0.15);
+}
+
+/* PDF Upload Styles */
+.pdf-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-pdf-upload {
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: var(--transition);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.btn-pdf-upload:hover {
+    color: var(--seah-red);
+}
+
+.btn-pdf-view {
+    color: var(--seah-red);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+}
+
+.fa-spinner {
+    color: var(--seah-red);
 }
