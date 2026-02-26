@@ -583,6 +583,180 @@ function createInventoryChart(canvasId, config) {
 }
 
 /* ------------------------------------------
+   6. 제조원가 전용 차트 (스택형 막대 + 꺾은선)
+   ------------------------------------------ */
+function createMfgCostChart(canvasId, config) {
+    destroyChart(canvasId);
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    var ctx = canvas.getContext('2d');
+
+    var labels = config.labels;
+    var fixedData = config.fixedData;
+    var varData = config.varData;
+    var prodData = config.prodData;
+    var target = config.target;
+    var unit = config.unit || '원/TON';
+
+    var chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '고정비',
+                    data: fixedData,
+                    backgroundColor: '#3b82f6',
+                    stack: 'cost',
+                    borderRadius: 2,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '변동비',
+                    data: varData,
+                    backgroundColor: '#ef4444',
+                    stack: 'cost',
+                    borderRadius: 2,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '생산량',
+                    data: prodData,
+                    type: 'line',
+                    borderColor: '#f97316',
+                    backgroundColor: 'transparent',
+                    pointBackgroundColor: '#f97316',
+                    pointRadius: 4,
+                    borderWidth: 3,
+                    yAxisID: 'y1',
+                    tension: 0.2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { boxWidth: 12, font: { size: 11 } }
+                },
+                annotation: {
+                    annotations: {
+                        targetLine: {
+                            type: 'line',
+                            yMin: target,
+                            yMax: target,
+                            borderColor: '#E31937',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            label: {
+                                display: true,
+                                content: '26년 제조경비 목표: ' + (target ? target.toLocaleString() : 0) + unit,
+                                position: 'end',
+                                backgroundColor: 'rgba(255,255,255,0.8)',
+                                color: '#E31937',
+                                font: { size: 10, weight: 'bold' },
+                                padding: 4
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    position: 'left',
+                    stacked: true,
+                    beginAtZero: true,
+                    title: { display: true, text: '(' + unit + ')', font: { size: 10 } },
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: { callback: function (v) { return v.toLocaleString(); } }
+                },
+                y1: {
+                    position: 'right',
+                    beginAtZero: true,
+                    title: { display: true, text: '(톤)', font: { size: 10 } },
+                    grid: { display: false },
+                    ticks: { callback: function (v) { return v.toLocaleString(); } }
+                }
+            }
+        }
+    });
+
+    chartInstances[canvasId] = chart;
+    return chart;
+}
+
+/* ------------------------------------------
+   7. 공통 추이 차트 (커스텀 데이터셋 지원)
+   ------------------------------------------ */
+function createCommonTrendChart(canvasId, config) {
+    destroyChart(canvasId);
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    var ctx = canvas.getContext('2d');
+
+    var labels = config.labels;
+    var datasets = config.datasets;
+    var title = config.title;
+    var yTitle = config.yTitle || '';
+    var y1Title = config.y1Title || '';
+
+    var chart = new Chart(ctx, {
+        type: 'bar', // Default
+        data: {
+            labels: labels,
+            datasets: datasets.map(function (ds) {
+                return Object.assign({
+                    borderRadius: 2,
+                    borderWidth: ds.type === 'line' ? 2 : 0,
+                    pointRadius: ds.type === 'line' ? 3 : 0,
+                    tension: 0.3
+                }, ds);
+            })
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { boxWidth: 10, font: { size: 10 } }
+                },
+                title: title ? {
+                    display: true,
+                    text: title,
+                    font: { size: 13, weight: '600' }
+                } : undefined
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                y: {
+                    position: 'left',
+                    beginAtZero: config.beginAtZero !== false,
+                    title: { display: true, text: yTitle, font: { size: 10 } },
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: { font: { size: 10 } }
+                },
+                y1: y1Title ? {
+                    position: 'right',
+                    beginAtZero: true,
+                    title: { display: true, text: y1Title, font: { size: 10 } },
+                    grid: { display: false },
+                    ticks: { font: { size: 10 } }
+                } : undefined
+            }
+        }
+    });
+
+    chartInstances[canvasId] = chart;
+    return chart;
+}
+
+/* ------------------------------------------
    유틸리티 함수
    ------------------------------------------ */
 function formatNumber(num) {

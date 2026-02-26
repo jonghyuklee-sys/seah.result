@@ -28,7 +28,11 @@
         consumables: '소모품 원단위',
         factoryKPI: '공장KPI (폐기/재고)',
         complaints: '고객불만 및 반품',
-        breakdown: '설비고장'
+        breakdown: '설비고장',
+        productionCold: '생산팀(냉연) 보고',
+        productionColor: '생산팀(칼라) 보고',
+        productionColdReports: '생산팀(냉연) 상세 보고',
+        productionColorReports: '생산팀(칼라) 상세 보고'
     };
 
     // ==========================================
@@ -251,9 +255,73 @@
                     `;
                 }).join('');
             } else {
-                // 과제 상세는 복잡하므로 간단한 안내
-                formHtml = `<p>과제 상세 편집은 추후 지원 예정입니다.</p>`;
+                formHtml = '<p>과제 상세 편집은 추후 지원 예정입니다.</p>';
             }
+        } else if (sectionId === 'productionColdReports' || sectionId === 'productionColorReports') {
+            var report = data[subKey] || { highlights: '', issues: '', plans: '', mfgCost: { fixed: { monthly: [] }, variable: { monthly: [] }, prodTarget: { monthly: [] }, prodActual: { monthly: [] }, unitCostTarget: 0 }, metrics: { electricity: { monthly: [] }, fuel: { monthly: [] }, repair: { monthly: [] }, consumables: { monthly: [] }, yield: { monthly: [] }, defects: {} } };
+            var m = report.mfgCost || { fixed: { monthly: [] }, variable: { monthly: [] }, prodTarget: { monthly: [] }, prodActual: { monthly: [] }, unitCostTarget: 0 };
+            var mt = report.metrics || { electricity: { monthly: [] }, fuel: { monthly: [] }, repair: { monthly: [] }, consumables: { monthly: [] }, yield: { monthly: [] }, defects: {} };
+            var curMonthIdx = dataManager.data.meta.month - 1;
+
+            var defectFields = '';
+            var defects = mt.defects || {};
+            if (sectionId === 'productionColdReports') {
+                defectFields = ' \
+                    <div class="form-group"><label>Pinhole (건)</label><input type="number" name="mt_defect_pinhole" value="' + (defects.pinhole ? defects.pinhole.monthly[curMonthIdx] : '') + '"></div> \
+                    <div class="form-group"><label>Edge (건)</label><input type="number" name="mt_defect_edge" value="' + (defects.edge ? defects.edge.monthly[curMonthIdx] : '') + '"></div> \
+                    <div class="form-group"><label>Scratch (건)</label><input type="number" name="mt_defect_scratch" value="' + (defects.scratch ? defects.scratch.monthly[curMonthIdx] : '') + '"></div>';
+            } else {
+                defectFields = ' \
+                    <div class="form-group"><label>Overcoat (건)</label><input type="number" name="mt_defect_overcoat" value="' + (defects.overcoat ? defects.overcoat.monthly[curMonthIdx] : '') + '"></div> \
+                    <div class="form-group"><label>Scratch (건)</label><input type="number" name="mt_defect_scratch" value="' + (defects.scratch ? defects.scratch.monthly[curMonthIdx] : '') + '"></div> \
+                    <div class="form-group"><label>Blister (건)</label><input type="number" name="mt_defect_blister" value="' + (defects.blister ? defects.blister.monthly[curMonthIdx] : '') + '"></div>';
+            }
+
+            formHtml = ' \
+                <div class="form-group" style="margin-bottom:16px"> \
+                    <label>당월 주요 실적</label> \
+                    <textarea name="highlights" rows="3" style="width:100%">' + (report.highlights || '') + '</textarea> \
+                </div> \
+                \
+                <div class="form-section-title">1. 제조원가 분석 (' + dataManager.data.meta.month + '월)</div> \
+                <div class="form-grid"> \
+                    <div class="form-group"><label>생산 실적 (톤)</label><input type="number" name="mc_prodActual" value="' + (m.prodActual.monthly[curMonthIdx] || '') + '"></div> \
+                    <div class="form-group"><label>제조경비 목표 (원/TON)</label><input type="number" name="mc_unitCostTarget" value="' + (m.unitCostTarget || '') + '"></div> \
+                    <div class="form-group"><label>고정비 (원/TON)</label><input type="number" name="mc_fixed" value="' + (m.fixed.monthly[curMonthIdx] || '') + '"></div> \
+                    <div class="form-group"><label>변동비 (원/TON)</label><input type="number" name="mc_variable" value="' + (m.variable.monthly[curMonthIdx] || '') + '"></div> \
+                </div> \
+                \
+                <div class="form-section-title">2. 생산성 및 효율 실적 (' + dataManager.data.meta.month + '월)</div> \
+                <div class="form-grid"> \
+                    <div class="form-group"><label>수율 (%)</label><input type="number" step="any" name="mt_yield" value="' + (mt.yield.monthly[curMonthIdx] || '') + '"></div> \
+                    <div class="form-group"><label>가동률 (%)</label><input type="number" step="any" name="mt_operRate" value="' + (mt.operRate ? mt.operRate.monthly[curMonthIdx] : '') + '"></div> \
+                    <div class="form-group"><label>정기수선 (H)</label><input type="number" step="any" name="mt_regReplace" value="' + (mt.regReplace ? mt.regReplace.monthly[curMonthIdx] : '') + '"></div> \
+                    <div class="form-group"><label>고장/비관련 (H)</label><input type="number" step="any" name="mt_irregFail" value="' + (mt.irregFail ? mt.irregFail.monthly[curMonthIdx] : '') + '"></div> \
+                    <div class="form-group"><label>톤파워 (T/HR)</label><input type="number" step="any" name="mt_tonPower" value="' + (mt.tonPower ? mt.tonPower.monthly[curMonthIdx] : '') + '"></div> \
+                </div> \
+                \
+                <div class="form-section-title">3. 유틸리티 원단위 실적 (' + dataManager.data.meta.month + '월)</div> \
+                <div class="form-grid"> \
+                    <div class="form-group"><label>전력 (kWh/T)</label><input type="number" step="any" name="mt_electricity" value="' + (mt.electricity.monthly[curMonthIdx] || '') + '"></div> \
+                    <div class="form-group"><label>연료 (Nm3/T)</label><input type="number" step="any" name="mt_fuel" value="' + (mt.fuel.monthly[curMonthIdx] || '') + '"></div> \
+                </div> \
+                \
+                <div class="form-section-title">4. 품질 결함 실적 (건)</div> \
+                <div class="form-grid"> \
+                    ' + defectFields + ' \
+                </div> \
+                \
+                <div class="form-group" style="margin-top:16px"> \
+                    <label>추가 자료 (PDF)</label> \
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:8px"> \
+                        <input type="hidden" name="pdfUrl" value="' + (report.pdfUrl || '') + '"> \
+                        <label class="btn-pdf-upload" style="cursor:pointer; padding:8px 16px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; display:inline-flex; align-items:center; gap:6px"> \
+                            <i class="fas fa-upload"></i> PDF 업로드 \
+                            <input type="file" accept=".pdf" style="display:none" onchange="handleTeamPdfUpload(this, \'' + sectionId + '\', \'' + subKey + '\')"> \
+                        </label> \
+                        <span id="pdf-status" style="font-size:12px; color:var(--text-secondary)">' + (report.pdfUrl ? '첨부됨' : '파일 없음') + '</span> \
+                    </div> \
+                </div>';
         } else {
             // 공통 패턴: 연도별+월별 데이터
             const keyData = data[subKey] || data;
@@ -365,29 +433,76 @@
                 });
             }
         } else if (sectionId === 'keyTasks' && subKey === 'teamSummary') {
-            TEAMS.forEach(team => {
+            TEAMS.forEach(function (team) {
                 if (!data.teamSummary[team]) data.teamSummary[team] = {};
-                data.teamSummary[team].target = values[`kt_${team}_target`];
-                data.teamSummary[team].monthly = values[`kt_${team}_monthly`];
-                data.teamSummary[team].cumulative = values[`kt_${team}_cumulative`];
-                data.teamSummary[team].rate = values[`kt_${team}_rate`];
+                data.teamSummary[team].target = values['kt_' + team + '_target'];
+                data.teamSummary[team].monthly = values['kt_' + team + '_monthly'];
+                data.teamSummary[team].cumulative = values['kt_' + team + '_cumulative'];
+                data.teamSummary[team].rate = values['kt_' + team + '_rate'];
+            });
+        } else if (sectionId === 'productionColdReports' || sectionId === 'productionColorReports') {
+            if (!data[subKey]) data[subKey] = { highlights: '', issues: '', plans: '', pdfUrl: '', mfgCost: { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 }, metrics: { electricity: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, repair: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, consumables: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, defects: {} } };
+            var report = data[subKey];
+            var curMonthIdx = dataManager.data.meta.month - 1;
+
+            report.highlights = values.highlights;
+            report.pdfUrl = values.pdfUrl;
+
+            // 1. Mfg Cost
+            if (!report.mfgCost) report.mfgCost = { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 };
+            var m = report.mfgCost;
+            if (values.mc_prodActual !== undefined) m.prodActual.monthly[curMonthIdx] = values.mc_prodActual;
+            if (values.mc_fixed !== undefined) m.fixed.monthly[curMonthIdx] = values.mc_fixed;
+            if (values.mc_variable !== undefined) m.variable.monthly[curMonthIdx] = values.mc_variable;
+            if (values.mc_unitCostTarget !== undefined) m.unitCostTarget = values.mc_unitCostTarget;
+
+            // 2. Metrics (Utility, Yield, OperRate, etc.)
+            if (!report.metrics) report.metrics = { electricity: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, repair: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, consumables: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, operRate: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, regReplace: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, irregFail: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, tonPower: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, defects: {} };
+            var mt = report.metrics;
+            if (values.mt_electricity !== undefined) mt.electricity.monthly[curMonthIdx] = values.mt_electricity;
+            if (values.mt_fuel !== undefined) mt.fuel.monthly[curMonthIdx] = values.mt_fuel;
+            if (values.mt_yield !== undefined) mt.yield.monthly[curMonthIdx] = values.mt_yield;
+            if (values.mt_operRate !== undefined) {
+                if (!mt.operRate) mt.operRate = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
+                mt.operRate.monthly[curMonthIdx] = values.mt_operRate;
+            }
+            if (values.mt_regReplace !== undefined) {
+                if (!mt.regReplace) mt.regReplace = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
+                mt.regReplace.monthly[curMonthIdx] = values.mt_regReplace;
+            }
+            if (values.mt_irregFail !== undefined) {
+                if (!mt.irregFail) mt.irregFail = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
+                mt.irregFail.monthly[curMonthIdx] = values.mt_irregFail;
+            }
+            if (values.mt_tonPower !== undefined) {
+                if (!mt.tonPower) mt.tonPower = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
+                mt.tonPower.monthly[curMonthIdx] = values.mt_tonPower;
+            }
+
+            // 3. Defects
+            if (!mt.defects) mt.defects = {};
+            var defectKeys = sectionId === 'productionColdReports' ? ['pinhole', 'edge', 'scratch'] : ['overcoat', 'scratch', 'blister'];
+            defectKeys.forEach(function (dk) {
+                if (!mt.defects[dk]) mt.defects[dk] = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
+                var val = values['mt_defect_' + dk];
+                if (val !== undefined) mt.defects[dk].monthly[curMonthIdx] = val;
             });
         } else {
             // 공통 패턴: 연도별+월별 데이터
             if (!data[subKey]) data[subKey] = {};
-            const keyData = data[subKey];
+            var keyData = data[subKey];
             if (values.target !== undefined) keyData.target = values.target;
             if (values.analysis !== undefined) keyData.analysis = values.analysis;
-            const yearly = [];
-            const monthly = [];
-            for (let i = 0; i < 4; i++) {
-                yearly.push(values[`yearly_${i}`] ?? null);
+            var yearly = [];
+            var monthly = [];
+            for (var i = 0; i < 4; i++) {
+                yearly.push(values['yearly_' + i] !== undefined ? values['yearly_' + i] : null);
             }
-            for (let i = 0; i < 12; i++) {
-                monthly.push(values[`monthly_${i}`] ?? null);
+            for (var j = 0; j < 12; j++) {
+                monthly.push(values['monthly_' + j] !== undefined ? values['monthly_' + j] : null);
             }
-            if (yearly.some(v => v !== null)) keyData.yearly = yearly;
-            if (monthly.some(v => v !== null)) keyData.monthly = monthly;
+            if (yearly.some(function (v) { return v !== null; })) keyData.yearly = yearly;
+            if (monthly.some(function (v) { return v !== null; })) keyData.monthly = monthly;
         }
 
         await dataManager.updateSectionData(sectionId, data);
@@ -703,6 +818,36 @@
 
                 showToast('PDF 파일이 저장소에 업로드되었습니다.');
             } catch (e) {
+                showToast('PDF 업로드에 실패했습니다.');
+            } finally {
+                label.innerHTML = originalHtml;
+                label.style.pointerEvents = '';
+            }
+        };
+        // 팀별 상세 보고 PDF 업로드 핸들러
+        window.handleTeamPdfUpload = async function (input, sectionId, line) {
+            var file = input.files[0];
+            if (!file) return;
+
+            var label = input.closest('label');
+            var originalHtml = label.innerHTML;
+            label.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            label.style.pointerEvents = 'none';
+
+            try {
+                var year = selectYear.value;
+                var month = selectMonth.value;
+                var path = 'reports/' + year + '/' + month + '/team_reports/' + sectionId + '/' + line + '/' + Date.now() + '_' + file.name;
+                var url = await dataManager.uploadFile(file, path);
+
+                // UI 업데이트
+                var container = input.closest('.form-group');
+                container.querySelector('input[type="hidden"]').value = url;
+                document.getElementById('pdf-status').textContent = '첨부됨: ' + file.name;
+
+                showToast('PDF 파일이 저장되었습니다. "저장" 버튼을 눌러야 최종 반영됩니다.');
+            } catch (e) {
+                console.error('PDF 업로드 에러:', e);
                 showToast('PDF 업로드에 실패했습니다.');
             } finally {
                 label.innerHTML = originalHtml;

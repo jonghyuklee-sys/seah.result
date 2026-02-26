@@ -399,6 +399,100 @@ class DataManager {
                 countMech: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
                 timeElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
                 countElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            },
+            productionColdReports: {
+                CPL: {
+                    highlights: '', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 },
+                    metrics: {
+                        yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        operRate: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        regReplace: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        irregFail: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        tonPower: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        utility: {
+                            elec: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                            fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }
+                        }
+                    }
+                },
+                CRM: {
+                    highlights: '', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 },
+                    metrics: {
+                        yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        operRate: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        regReplace: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        irregFail: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        tonPower: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        utility: {
+                            elec: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                            fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }
+                        }
+                    }
+                },
+                CGL: {
+                    highlights: '', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 },
+                    metrics: {
+                        yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        operRate: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        regReplace: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        irregFail: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        tonPower: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        utility: {
+                            elec: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                            fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }
+                        }
+                    }
+                }
+            },
+            productionColorReports: {
+                '1CCL': {
+                    highlights: '', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 },
+                    metrics: {
+                        yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        operRate: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        regReplace: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        irregFail: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        tonPower: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        utility: {
+                            elec: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                            fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }
+                        }
+                    }
+                },
+                '2CCL': {
+                    highlights: '', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 },
+                    metrics: {
+                        yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        operRate: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        regReplace: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        irregFail: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        tonPower: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        utility: {
+                            elec: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                            fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }
+                        }
+                    }
+                },
+                '3CCL': {
+                    highlights: '', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 },
+                    metrics: {
+                        yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        operRate: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        regReplace: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        irregFail: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        tonPower: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                        utility: {
+                            elec: { yearly: [null, null, null], monthly: new Array(12).fill(null) },
+                            fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }
+                        }
+                    }
+                }
             }
         };
     }
@@ -539,6 +633,106 @@ class DataManager {
                 }
             },
 
+            productionColdReports: {
+                CPL: {
+                    highlights: 'CPL 당월 주요 실적 내용입니다.', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: {
+                        fixed: { yearly: [119273, 116832, 116820], monthly: [91207, null, null, null, null, null, null, null, null, null, null, null] },
+                        variable: { yearly: [103056, 85354, 80402], monthly: [65053, null, null, null, null, null, null, null, null, null, null, null] },
+                        prodTarget: { yearly: [null, 5524, 5549], monthly: [6200, null, null, null, null, null, null, null, null, null, null, null] },
+                        prodActual: { yearly: [4368, 5275, 5522], monthly: [7445, null, null, null, null, null, null, null, null, null, null, null] },
+                        unitCostTarget: 159166
+                    },
+                    metrics: {
+                        yield: { yearly: [99.2, 99.4, 99.4], monthly: [99.5, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [85, 88, 90], monthly: [92, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [120, 115, 110], monthly: [105, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [45, 38, 30], monthly: [2, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [12.5, 13.2, 13.5], monthly: [13.8, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [25, 24, 23], monthly: [22.5, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [15, 14, 14], monthly: [13.8, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                },
+                CRM: {
+                    highlights: 'CRM 실적 내용입니다.', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [85000, 82000, 81000], monthly: [80500, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [120000, 115000, 110000], monthly: [108000, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [5000, 5100, 5200], monthly: [5300, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [4800, 5050, 5150], monthly: [5250, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 190000 },
+                    metrics: {
+                        yield: { yearly: [98.5, 98.8, 99.0], monthly: [99.2, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [82, 85, 87], monthly: [88, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [150, 145, 140], monthly: [135, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [55, 48, 42], monthly: [3, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [10.5, 11.2, 11.5], monthly: [11.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [220, 215, 210], monthly: [208, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [2, 2, 2], monthly: [1.9, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                },
+                CGL: {
+                    highlights: 'CGL 실적 내용입니다.', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [150000, 145000, 140000], monthly: [138000, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [250000, 240000, 230000], monthly: [225000, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [8000, 8200, 8400], monthly: [8500, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [7800, 8100, 8300], monthly: [8450, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 360000 },
+                    metrics: {
+                        yield: { yearly: [99.0, 99.2, 99.3], monthly: [99.5, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [88, 90, 91], monthly: [93, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [200, 190, 185], monthly: [180, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [35, 30, 25], monthly: [1, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [15.5, 16.2, 16.5], monthly: [16.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [180, 175, 170], monthly: [168, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [45, 43, 42], monthly: [41, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                }
+            },
+            productionColorReports: {
+                '1CCL': {
+                    highlights: '1CCL 실적 내용입니다.', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [60000, 58000, 57000], monthly: [56500, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [40000, 38000, 37000], monthly: [36500, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [3000, 3100, 3200], monthly: [3300, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [2900, 3050, 3150], monthly: [3250, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 90000 },
+                    metrics: {
+                        yield: { yearly: [98.8, 99.0, 99.1], monthly: [99.3, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [78, 82, 84], monthly: [86, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [300, 280, 270], monthly: [260, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [65, 55, 45], monthly: [4, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [8.5, 9.2, 9.5], monthly: [9.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [120, 115, 110], monthly: [108, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [35, 33, 32], monthly: [31, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                },
+                '2CCL': {
+                    highlights: '2CCL 실적 내용입니다.', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [70000, 68000, 67000], monthly: [66500, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [50000, 48000, 47000], monthly: [46500, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [4000, 4100, 4200], monthly: [4300, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [3900, 4050, 4150], monthly: [4250, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 110000 },
+                    metrics: {
+                        yield: { yearly: [98.5, 98.7, 98.9], monthly: [99.1, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [80, 83, 85], monthly: [87, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [350, 330, 310], monthly: [300, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [75, 65, 55], monthly: [5, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [9.5, 10.2, 10.5], monthly: [10.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [140, 135, 130], monthly: [128, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [40, 38, 37], monthly: [36, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                },
+                '3CCL': {
+                    highlights: '3CCL 실적 내용입니다.', issues: '', plans: '', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [65000, 63000, 62000], monthly: [61500, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [45000, 43000, 42000], monthly: [41500, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [3500, 3600, 3700], monthly: [3800, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [3400, 3550, 3650], monthly: [3750, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 100000 },
+                    metrics: {
+                        yield: { yearly: [98.7, 98.9, 99.0], monthly: [99.2, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [84, 86, 88], monthly: [90, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [320, 300, 280], monthly: [265, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [65, 55, 45], monthly: [4, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [8.5, 9.2, 9.5], monthly: [9.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [130, 125, 120], monthly: [118, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [38, 36, 35], monthly: [34, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                }
+            },
 
             // 주요지표 - 설비종합효율
             equipEfficiency: {
@@ -701,6 +895,106 @@ class DataManager {
                 countMech: { target: 6, yearly: [7, 6, 6, 5], monthly: [5, null, null, null, null, null, null, null, null, null, null, null] },
                 timeElec: { target: 5.0, yearly: [6.0, 6.0, 6.0, 5.3], monthly: [5.3, null, null, null, null, null, null, null, null, null, null, null] },
                 countElec: { target: 4, yearly: [5, 5, 4, 3], monthly: [3, null, null, null, null, null, null, null, null, null, null, null] }
+            },
+            productionColdReports: {
+                CPL: {
+                    highlights: 'CPL 당월 주요 실적 내용입니다.', issues: 'CPL 문제점 및 대책 내용입니다.', plans: 'CPL 차월 계획 내용입니다.', pdfUrl: '',
+                    mfgCost: {
+                        fixed: { yearly: [119273, 116832, 116820], monthly: [91207, null, null, null, null, null, null, null, null, null, null, null] },
+                        variable: { yearly: [103056, 85354, 80402], monthly: [65053, null, null, null, null, null, null, null, null, null, null, null] },
+                        prodTarget: { yearly: [null, 5524, 5549], monthly: [6200, null, null, null, null, null, null, null, null, null, null, null] },
+                        prodActual: { yearly: [4368, 5275, 5522], monthly: [7445, null, null, null, null, null, null, null, null, null, null, null] },
+                        unitCostTarget: 159166
+                    },
+                    metrics: {
+                        yield: { yearly: [99.2, 99.4, 99.4], monthly: [99.5, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [85, 88, 90], monthly: [92, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [120, 115, 110], monthly: [105, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [45, 38, 30], monthly: [2, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [12.5, 13.2, 13.5], monthly: [13.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [25, 24, 23], monthly: [22.5, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [15, 14, 14], monthly: [13.8, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                },
+                CRM: {
+                    highlights: 'CRM 실적 내용입니다.', issues: 'CRM 이슈입니다.', plans: 'CRM 계획입니다.', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [85000, 82000, 81000], monthly: [80500, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [120000, 115000, 110000], monthly: [108000, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [5000, 5100, 5200], monthly: [5300, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [4800, 5050, 5150], monthly: [5250, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 190000 },
+                    metrics: {
+                        yield: { yearly: [98.5, 98.8, 99.0], monthly: [99.2, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [82, 85, 87], monthly: [88, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [150, 145, 140], monthly: [135, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [55, 48, 42], monthly: [3, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [10.5, 11.2, 11.5], monthly: [11.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [220, 215, 210], monthly: [208, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [2, 2, 2], monthly: [1.9, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                },
+                CGL: {
+                    highlights: 'CGL 실적 내용입니다.', issues: 'CGL 이슈입니다.', plans: 'CGL 계획입니다.', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [150000, 145000, 140000], monthly: [138000, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [250000, 240000, 230000], monthly: [225000, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [8000, 8200, 8400], monthly: [8500, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [7800, 8100, 8300], monthly: [8450, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 360000 },
+                    metrics: {
+                        yield: { yearly: [99.0, 99.2, 99.3], monthly: [99.5, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [88, 90, 91], monthly: [93, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [200, 190, 185], monthly: [180, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [35, 30, 25], monthly: [1, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [15.5, 16.2, 16.5], monthly: [16.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [180, 175, 170], monthly: [168, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [45, 43, 42], monthly: [41, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                }
+            },
+            productionColorReports: {
+                '1CCL': {
+                    highlights: '1CCL 실적 내용입니다.', issues: '1CCL 이슈입니다.', plans: '1CCL 계획입니다.', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [60000, 58000, 57000], monthly: [56500, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [40000, 38000, 37000], monthly: [36500, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [3000, 3100, 3200], monthly: [3300, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [2900, 3050, 3150], monthly: [3250, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 90000 },
+                    metrics: {
+                        yield: { yearly: [98.8, 99.0, 99.1], monthly: [99.3, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [78, 82, 84], monthly: [86, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [300, 280, 270], monthly: [260, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [65, 55, 45], monthly: [4, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [8.5, 9.2, 9.5], monthly: [9.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [120, 115, 110], monthly: [108, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [35, 33, 32], monthly: [31, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                },
+                '2CCL': {
+                    highlights: '2CCL 실적 내용입니다.', issues: '2CCL 이슈입니다.', plans: '2CCL 계획입니다.', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [70000, 68000, 67000], monthly: [66500, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [50000, 48000, 47000], monthly: [46500, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [4000, 4100, 4200], monthly: [4300, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [3900, 4050, 4150], monthly: [4250, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 110000 },
+                    metrics: {
+                        yield: { yearly: [98.5, 98.7, 98.9], monthly: [99.1, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [80, 83, 85], monthly: [87, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [350, 330, 310], monthly: [300, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [75, 65, 55], monthly: [5, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [9.5, 10.2, 10.5], monthly: [10.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [140, 135, 130], monthly: [128, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [40, 38, 37], monthly: [36, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                },
+                '3CCL': {
+                    highlights: '3CCL 실적 내용입니다.', issues: '3CCL 이슈입니다.', plans: '3CCL 계획입니다.', pdfUrl: '',
+                    mfgCost: { fixed: { yearly: [65000, 63000, 62000], monthly: [61500, null, null, null, null, null, null, null, null, null, null, null] }, variable: { yearly: [45000, 43000, 42000], monthly: [41500, null, null, null, null, null, null, null, null, null, null, null] }, prodTarget: { yearly: [3500, 3600, 3700], monthly: [3800, null, null, null, null, null, null, null, null, null, null, null] }, prodActual: { yearly: [3400, 3550, 3650], monthly: [3750, null, null, null, null, null, null, null, null, null, null, null] }, unitCostTarget: 100000 },
+                    metrics: {
+                        yield: { yearly: [98.7, 98.9, 99.0], monthly: [99.2, null, null, null, null, null, null, null, null, null, null, null] },
+                        operRate: { yearly: [84, 86, 88], monthly: [90, null, null, null, null, null, null, null, null, null, null, null] },
+                        regReplace: { yearly: [320, 300, 280], monthly: [265, null, null, null, null, null, null, null, null, null, null, null] },
+                        irregFail: { yearly: [65, 55, 45], monthly: [4, null, null, null, null, null, null, null, null, null, null, null] },
+                        tonPower: { yearly: [8.5, 9.2, 9.5], monthly: [9.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        utility: {
+                            elec: { yearly: [130, 125, 120], monthly: [118, null, null, null, null, null, null, null, null, null, null, null] },
+                            fuel: { yearly: [38, 36, 35], monthly: [34, null, null, null, null, null, null, null, null, null, null, null] }
+                        }
+                    }
+                }
             }
         };
     }

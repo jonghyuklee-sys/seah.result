@@ -1440,3 +1440,117 @@ body {
 .fa-spinner {
     color: var(--seah-red);
 }
+
+/* Team Detailed Report Styles */
+.report-section {
+    margin-bottom: 30px;
+}
+
+.report-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.report-header i {
+    color: var(--seah-red);
+    font-size: 1.1rem;
+}
+
+.report-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+    flex: 1;
+    font-weight: 600;
+}
+
+.report-text-card {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    min-height: 60px;
+    border: 1px solid #e2e8f0;
+    white-space: pre-wrap;
+}
+
+.btn-edit-sm {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.btn-edit-sm:hover {
+    color: var(--seah-red);
+}
+
+/* Team Detailed Report Table */
+.data-table-wrapper {
+    margin-top: 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.data-table th {
+    background: #f8fafc;
+    color: var(--text-secondary);
+    font-weight: 500;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: right;
+    color: var(--text-primary);
+}
+
+.data-table td:first-child {
+    text-align: left;
+    font-weight: 500;
+    background: #f8fafc;
+    position: sticky;
+    left: 0;
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.avg-val {
+    background: #fff9f9 !important;
+    font-weight: 600;
+    color: #E31937 !important;
+}
+
+.spinner-icon {
+    font-size: 20px;
+    color: var(--primary-color);
+}
+
+.btn-pdf-upload:hover {
+    background: #e2e8f0 !important;
+    border-color: #cbd5e1 !important;
+}
+
+.btn-pdf-view:hover {
+    background: #fee2e2 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}

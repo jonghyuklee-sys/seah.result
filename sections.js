@@ -1297,5 +1297,337 @@ const SectionRenderers = {
                 });
             });
         }, 100);
+    },
+
+    /*------------------------------------------
+       19. 생산팀(냉연) 보고
+      ------------------------------------------ */
+    productionCold(container) {
+        this.renderTeamDetailedReport(container, 'productionColdReports', '냉연');
+    },
+
+    /*------------------------------------------
+       20. 생산팀(칼라) 보고
+      ------------------------------------------ */
+    productionColor(container) {
+        this.renderTeamDetailedReport(container, 'productionColorReports', '칼라');
+    },
+
+    renderTeamDetailedReport(container, sectionKey, teamType) {
+        var _this = this;
+        var d = dataManager.getSectionData(sectionKey);
+        var lines = teamType === '냉연' ? ['CPL', 'CRM', 'CGL'] : ['1CCL', '2CCL', '3CCL'];
+
+        container.innerHTML = ' \
+            <div class="card" style="margin-bottom:20px"> \
+                <div class="card-header"> \
+                    <h3>생산팀(' + teamType + ') 월간 상세 보고</h3> \
+                    <div class="card-actions"> \
+                        <button class="btn-edit" onclick="openBulkEditModal(\'' + sectionKey + '\')"> \
+                            <i class="fas fa-edit"></i> 전체 데이터 수정 \
+                        </button> \
+                    </div> \
+                </div> \
+            </div> \
+            <div class="card"> \
+                <div class="card-header"> \
+                    <div class="sub-tabs"> \
+                        ' + lines.map(function (line, i) {
+            return '<button class="sub-tab ' + (i === 0 ? 'active' : '') + '" data-line="' + line + '">' + line + '</button>';
+        }).join('') + ' \
+                    </div> \
+                </div> \
+                <div class="card-body"> \
+                    ' + lines.map(function (line, i) {
+            var report = d[line] || { highlights: '', issues: '', plans: '' };
+            return ' \
+                        <div id="report-' + line + '" class="sub-content ' + (i === 0 ? 'active' : '') + '"> \
+                            <div class="report-section"> \
+                                <div class="report-header"> \
+                                    <i class="fas fa-star"></i> \
+                                    <h4>당월 주요 실적</h4> \
+                                    <button class="btn-edit-sm" onclick="openEditModal(\'' + sectionKey + '\', \'' + line + '\')"><i class="fas fa-edit"></i></button> \
+                                </div> \
+                                <div class="report-text-card">' + (report.highlights ? report.highlights.replace(/\n/g, '<br>') : '내역 없음') + '</div> \
+                            </div> \
+                            <div class="report-section" style="margin-top:20px"> \
+                                <div class="report-header"> \
+                                    <i class="fas fa-exclamation-circle"></i> \
+                                    <h4>문제점 및 대책</h4> \
+                                </div> \
+                                <div class="report-text-card">' + (report.issues ? report.issues.replace(/\n/g, '<br>') : '내역 없음') + '</div> \
+                            </div> \
+                            <div class="report-section" style="margin-top:20px"> \
+                                <div class="report-header"> \
+                                    <i class="fas fa-calendar-check"></i> \
+                                    <h4>차월 계획</h4> \
+                                </div> \
+                                <div class="report-text-card">' + (report.plans ? report.plans.replace(/\n/g, '<br>') : '내역 없음') + '</div> \
+                            </div> \
+                            ' + (report.pdfUrl ? ' \
+                            <div class="report-section" style="margin-top:20px"> \
+                                <div class="report-header"> \
+                                    <i class="fas fa-file-pdf"></i> \
+                                    <h4>추가 자료 (PDF)</h4> \
+                                </div> \
+                                <div style="margin-top:10px"> \
+                                    <a href="' + report.pdfUrl + '" target="_blank" class="btn-pdf-view" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; background:#fef2f2; border:1px solid #fee2e2; border-radius:6px; color:#E31937; text-decoration:none; font-weight:500; font-size:14px"> \
+                                        <i class="fas fa-file-pdf"></i> PDF 보고서 보기 \
+                                    </a> \
+                                </div> \
+                            </div>' : '') + ' \
+                            \
+                            ' + _this.renderMfgCostSection(sectionKey, line, report) + ' \
+                        </div>';
+        }).join('') + ' \
+                </div> \
+            </div>';
+
+        // Tab switching
+        var tabs = container.querySelectorAll('.sub-tab');
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                var line = this.dataset.line;
+                tabs.forEach(function (t) { return t.classList.remove('active'); });
+                this.classList.add('active');
+                container.querySelectorAll('.sub-content').forEach(function (c) { return c.classList.remove('active'); });
+                container.querySelector('#report-' + line).classList.add('active');
+
+                // 차트 다시 그리기
+                _this.renderLineCharts(sectionKey, line);
+            });
+        });
+
+        // 초기 차트 렌더링 (첫 번째 라인)
+        setTimeout(function () {
+            _this.renderLineCharts(sectionKey, lines[0]);
+        }, 300);
+    },
+
+    renderLineCharts: function (sectionKey, line) {
+        var d = dataManager.getSectionData(sectionKey);
+        var report = d[line];
+        if (!report) return;
+
+        var labels = [].concat(YEARS.slice(0, 3), MONTHS); // 23, 24, 25 + 1~12월
+
+        // 1. 제조원가 차트
+        if (report.mfgCost) {
+            var m = report.mfgCost;
+            createMfgCostChart('chart-mfg-' + line, {
+                labels: labels,
+                fixedData: [].concat(m.fixed.yearly || [], m.fixed.monthly || []),
+                varData: [].concat(m.variable.yearly || [], m.variable.monthly || []),
+                prodData: [].concat(m.prodActual.yearly || [], m.prodActual.monthly || []),
+                target: m.unitCostTarget,
+                unit: '원/TON'
+            });
+        }
+
+        if (report.metrics) {
+            var mt = report.metrics;
+            // 2. 에너지 원단위 (전력/연료)
+            createCommonTrendChart('chart-elec-fuel-' + line, {
+                labels: labels,
+                datasets: [
+                    { label: '전력 (kWh/T)', type: 'bar', data: [].concat(mt.utility?.elec?.yearly || [], mt.utility?.elec?.monthly || []), backgroundColor: '#3b82f6' },
+                    { label: '연료 (Nm3/T)', type: 'line', data: [].concat(mt.utility?.fuel?.yearly || [], mt.utility?.fuel?.monthly || []), borderColor: '#ef4444', yAxisID: 'y1', tension: 0.1 }
+                ],
+                yTitle: '전력',
+                y1Title: '연료'
+            });
+
+            // 3. 가동률
+            createCommonTrendChart('chart-oper-rate-' + line, {
+                labels: labels,
+                datasets: [
+                    { label: '가동률 (%)', type: 'line', data: [].concat(mt.operRate ? mt.operRate.yearly : [], mt.operRate ? mt.operRate.monthly : []), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.1 }
+                ],
+                yTitle: '(%)',
+                beginAtZero: false
+            });
+
+            // 4. 톤파워
+            createCommonTrendChart('chart-ton-power-' + line, {
+                labels: labels,
+                datasets: [
+                    { label: '톤파워 (T/HR)', type: 'bar', data: [].concat(mt.tonPower ? mt.tonPower.yearly : [], mt.tonPower ? mt.tonPower.monthly : []), backgroundColor: '#f59e0b' }
+                ],
+                yTitle: '(T/HR)'
+            });
+
+            // 5. 비가동 분석 (정기수선/고장)
+            createCommonTrendChart('chart-maintenance-' + line, {
+                labels: labels,
+                datasets: [
+                    { label: '정기수선 (H)', type: 'bar', data: [].concat(mt.regReplace ? mt.regReplace.yearly : [], mt.regReplace ? mt.regReplace.monthly : []), backgroundColor: '#6366f1' },
+                    { label: '고장/비관련 (H)', type: 'bar', data: [].concat(mt.irregFail ? mt.irregFail.yearly : [], mt.irregFail ? mt.irregFail.monthly : []), backgroundColor: '#ec4899' }
+                ],
+                yTitle: '(시간/H)'
+            });
+
+            // 6. 수율
+            createCommonTrendChart('chart-yield-' + line, {
+                labels: labels,
+                datasets: [
+                    { label: '수율 (%)', type: 'line', data: [].concat(mt.yield.yearly || [], mt.yield.monthly || []), borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true, tension: 0.1 }
+                ],
+                yTitle: '(%)',
+                beginAtZero: false
+            });
+
+            // 7. 주요 결함 (건)
+            var defectKeys = Object.keys(mt.defects || {});
+            var colors = ['#f87171', '#fbbf24', '#34d399', '#60a5fa'];
+            createCommonTrendChart('chart-defects-' + line, {
+                labels: labels,
+                datasets: defectKeys.map(function (key, idx) {
+                    return { label: key, type: 'bar', data: [].concat(mt.defects[key].yearly || [], mt.defects[key].monthly || []), backgroundColor: colors[idx % colors.length] };
+                }),
+                yTitle: '(건수)'
+            });
+        }
+    },
+
+    renderMfgCostSection: function (sectionKey, line, report) {
+        var m = report.mfgCost;
+        if (!m) return '';
+
+        var years = YEARS.slice(0, 3); // 23, 24, 25
+        var months = MONTHS;
+
+        var html = ' \
+            <div class="report-section" style="margin-top:40px"> \
+                <div class="report-header"> \
+                    <i class="fas fa-chart-line"></i> \
+                    <h4>1. 제조 원가 분석</h4> \
+                </div> \
+                <div class="chart-container" style="height:300px; margin-bottom:20px"> \
+                    <canvas id="chart-mfg-' + line + '"></canvas> \
+                </div> \
+                <div class="data-table-wrapper" style="overflow-x:auto"> \
+                    <table class="data-table"> \
+                        <thead> \
+                            <tr> \
+                                <th>구분</th> \
+                                ' + years.map(function (y) { return '<th>' + y + '</th>'; }).join('') + ' \
+                                ' + months.map(function (m) { return '<th>' + m + '</th>'; }).join('') + ' \
+                                <th>평균/누적</th> \
+                            </tr> \
+                        </thead> \
+                        <tbody>';
+
+        var rows = [
+            { label: '생산목표', key: 'prodTarget', data: m.prodTarget },
+            { label: '월 실적', key: 'prodActual', data: m.prodActual },
+            { label: '제조경비', key: 'total', data: null },
+            { label: '변동비', key: 'variable', data: m.variable },
+            { label: '고정비', key: 'fixed', data: m.fixed }
+        ];
+
+        rows.forEach(function (row) {
+            html += '<tr><td>' + row.label + '</td>';
+            for (var i = 0; i < 3; i++) {
+                var v = '-';
+                if (row.key === 'total') {
+                    var f = m.fixed.yearly[i];
+                    var vr = m.variable.yearly[i];
+                    if (f !== null && vr !== null) v = (f + vr).toLocaleString();
+                } else {
+                    v = row.data.yearly[i] !== null ? row.data.yearly[i].toLocaleString() : '-';
+                }
+                html += '<td>' + v + '</td>';
+            }
+            var sum = 0, count = 0;
+            for (var j = 0; j < 12; j++) {
+                var val = '-';
+                var numVal = null;
+                if (row.key === 'total') {
+                    var mf = m.fixed.monthly[j];
+                    var mv = m.variable.monthly[j];
+                    if (mf !== null && mv !== null) numVal = mf + mv;
+                } else {
+                    numVal = row.data.monthly[j];
+                }
+                if (numVal !== null) {
+                    val = numVal.toLocaleString();
+                    sum += numVal;
+                    count++;
+                }
+                html += '<td>' + val + '</td>';
+            }
+            var finalVal = '-';
+            if (count > 0) {
+                if (row.key === 'prodTarget' || row.key === 'prodActual') finalVal = sum.toLocaleString();
+                else finalVal = Math.round(sum / count).toLocaleString();
+            }
+            html += '<td class="avg-val">' + finalVal + '</td></tr>';
+        });
+
+        html += ' \
+                        </tbody> \
+                    </table> \
+                </div> \
+            </div>';
+
+        // 2. 에너지 원단위 실적
+        html += ' \
+            <div class="report-section" style="margin-top:40px"> \
+                <div class="report-header"> \
+                    <i class="fas fa-bolt"></i> \
+                    <h4>2. 에너지 원단위 실적 (전력/연료)</h4> \
+                </div> \
+                <div class="chart-container" style="height:250px; margin-top:15px"> \
+                    <canvas id="chart-elec-fuel-' + line + '"></canvas> \
+                </div> \
+            </div>';
+
+        // 3. 생산성 및 가동 효율
+        html += ' \
+            <div class="report-section" style="margin-top:40px"> \
+                <div class="report-header"> \
+                    <i class="fas fa-tachometer-alt"></i> \
+                    <h4>3. 생산성 및 가동 효율 (가동률/톤파워)</h4> \
+                </div> \
+                <div class="grid-2" style="margin-top:15px"> \
+                    <div class="chart-container" style="height:250px"> \
+                        <canvas id="chart-oper-rate-' + line + '"></canvas> \
+                    </div> \
+                    <div class="chart-container" style="height:250px"> \
+                        <canvas id="chart-ton-power-' + line + '"></canvas> \
+                    </div> \
+                </div> \
+            </div>';
+
+        // 4. 비가동 분석 (정기수선/고장)
+        html += ' \
+            <div class="report-section" style="margin-top:40px"> \
+                <div class="report-header"> \
+                    <i class="fas fa-tools"></i> \
+                    <h4>4. 비가동 분석 (정기수선/고장)</h4> \
+                </div> \
+                <div class="chart-container" style="height:250px; margin-top:15px"> \
+                    <canvas id="chart-maintenance-' + line + '"></canvas> \
+                </div> \
+            </div>';
+
+        // 5. 품질 경영 실적
+        html += ' \
+            <div class="report-section" style="margin-top:40px"> \
+                <div class="report-header"> \
+                    <i class="fas fa-check-circle"></i> \
+                    <h4>5. 품질 경영 실적 (수율/결함)</h4> \
+                </div> \
+                <div class="grid-2" style="margin-top:15px"> \
+                    <div class="chart-container" style="height:250px"> \
+                        <canvas id="chart-yield-' + line + '"></canvas> \
+                    </div> \
+                    <div class="chart-container" style="height:250px"> \
+                        <canvas id="chart-defects-' + line + '"></canvas> \
+                    </div> \
+                </div> \
+            </div>';
+
+        return html;
     }
 };
