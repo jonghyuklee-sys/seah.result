@@ -29,8 +29,8 @@
         factoryKPI: '공장KPI (폐기/재고)',
         complaints: '고객불만 및 반품',
         breakdown: '설비고장',
-        productionCold: '생산팀(냉연) 보고',
-        productionColor: '생산팀(칼라) 보고',
+        productionTeam: '생산팀 상세실적',
+        maintenanceTeam: '설비팀 상세실적',
         productionColdReports: '생산팀(냉연) 상세 보고',
         productionColorReports: '생산팀(칼라) 상세 보고'
     };
@@ -341,26 +341,73 @@
     window.openBulkEditModal = function (sectionId) {
         const data = dataManager.getSectionData(sectionId);
         let formHtml = '';
-        const keys = Object.keys(data);
+        if (sectionId === 'maintenanceTeam') {
+            const categories = [
+                { id: 'energyReduction', label: '1. 에너지 저감 실적' },
+                { id: 'downtime', label: '2. 설비 비가동 현황' },
+                { id: 'repairCost', label: '3. 수선비 집행실적' },
+                { id: 'utility', label: '4. 유틸리티 사용 실적' }
+            ];
 
-        keys.forEach(key => {
-            const kd = data[key];
-            if (kd && (kd.yearly || kd.monthly)) {
-                const displayName = key === 'composite' ? '종합' : key;
-                formHtml += `
-                    <div class="form-section-title">${displayName} (목표: ${kd.target || '-'})</div>
-                    <div class="form-grid">
-                        <div class="form-group"><label>목표</label><input type="number" step="any" name="bulk_${key}_target" value="${kd.target ?? ''}"></div>
-                        ${YEARS.map((y, i) => `
-                            <div class="form-group"><label>${y}</label><input type="number" step="any" name="bulk_${key}_y${i}" value="${kd.yearly?.[i] ?? ''}"></div>
-                        `).join('')}
-                        ${MONTHS.map((m, i) => `
-                            <div class="form-group"><label>${m}</label><input type="number" step="any" name="bulk_${key}_m${i}" value="${kd.monthly?.[i] ?? ''}"></div>
-                        `).join('')}
-                    </div>
-                `;
-            }
-        });
+            categories.forEach(cat => {
+                const catData = data[cat.id];
+                if (!catData) return;
+
+                formHtml += `<div class="form-section-head" style="background:#f1f5f9; padding:10px 15px; font-weight:700; margin-top:30px; border-radius:6px; border-left:4px solid var(--seah-red);">${cat.label}</div>`;
+
+                Object.keys(catData).forEach(sub => {
+                    const kd = catData[sub];
+                    if (!kd) return;
+
+                    // 일반 지표 (target + monthly)
+                    if (kd.monthly && !kd.CPL) {
+                        formHtml += `
+                            <div class="form-section-title" style="margin-top:15px; font-size:14px; color:var(--seah-red);">${sub === 'total' ? '종합' : sub}</div>
+                            <div class="form-grid">
+                                <div class="form-group"><label>목표</label><input type="number" step="any" name="mt_${cat.id}_${sub}_target" value="${kd.target ?? ''}"></div>
+                                ${MONTHS.map((m, i) => `
+                                    <div class="form-group"><label>${m}</label><input type="number" step="any" name="mt_${cat.id}_${sub}_m${i}" value="${kd.monthly?.[i] ?? ''}"></div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                    // 라인별 지표 (byLine: { CPL: { monthly }, ... })
+                    else if (sub === 'byLine') {
+                        formHtml += `<div class="form-section-title" style="margin-top:15px; font-size:14px; color:var(--seah-red);">라인별 상세 (당월:${dataManager.data.meta.month}월)</div>`;
+                        formHtml += `<div class="form-grid">`;
+                        const curIdx = dataManager.data.meta.month - 1;
+                        Object.keys(kd).forEach(line => {
+                            if (line === 'yearly' || line === 'monthly' || line === 'target') return;
+                            formHtml += `<div class="form-group"><label>${line}</label><input type="number" step="any" name="mt_${cat.id}_byLine_${line}_m${curIdx}" value="${kd[line]?.monthly?.[curIdx] ?? ''}"></div>`;
+                        });
+                        formHtml += `</div>`;
+                    }
+                });
+
+                if (catData.analysis !== undefined) {
+                    formHtml += `<div class="form-group" style="margin-top:15px;"><label>분석 코멘트</label><textarea name="mt_${cat.id}_analysis" rows="2" style="width:100%">${catData.analysis || ''}</textarea></div>`;
+                }
+            });
+        } else {
+            keys.forEach(key => {
+                const kd = data[key];
+                if (kd && (kd.yearly || kd.monthly)) {
+                    const displayName = key === 'composite' ? '종합' : key;
+                    formHtml += `
+                        <div class="form-section-title">${displayName} (목표: ${kd.target || '-'})</div>
+                        <div class="form-grid">
+                            <div class="form-group"><label>목표</label><input type="number" step="any" name="bulk_${key}_target" value="${kd.target ?? ''}"></div>
+                            ${YEARS.map((y, i) => `
+                                <div class="form-group"><label>${y}</label><input type="number" step="any" name="bulk_${key}_y${i}" value="${kd.yearly?.[i] ?? ''}"></div>
+                            `).join('')}
+                            ${MONTHS.map((m, i) => `
+                                <div class="form-group"><label>${m}</label><input type="number" step="any" name="bulk_${key}_m${i}" value="${kd.monthly?.[i] ?? ''}"></div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            });
+        }
 
         openModal(`${SECTION_TITLES[sectionId]} - 전체 데이터 수정`, formHtml, () => {
             saveBulkModalData(sectionId);
@@ -521,23 +568,56 @@
             values[name] = inp.value.trim() === '' ? null : parseFloat(inp.value);
         });
 
-        const data = dataManager.getSectionData(sectionId);
-        Object.keys(data).forEach(key => {
-            const kd = data[key];
-            if (!kd || (!kd.yearly && !kd.monthly)) return;
+        if (sectionId === 'maintenanceTeam') {
+            Object.keys(data).forEach(catKey => {
+                const cat = data[catKey];
+                Object.keys(cat).forEach(subKey => {
+                    const kd = cat[subKey];
+                    if (!kd) return;
 
-            const targetVal = values[`bulk_${key}_target`];
-            if (targetVal !== undefined) kd.target = targetVal;
+                    // 일반 지표
+                    if (kd.monthly && !kd.CPL) {
+                        const targetVal = values[`mt_${catKey}_${subKey}_target`];
+                        if (targetVal !== undefined) kd.target = targetVal;
+                        for (let i = 0; i < 12; i++) {
+                            const v = values[`mt_${catKey}_${subKey}_m${i}`];
+                            if (v !== undefined) kd.monthly[i] = v;
+                        }
+                    }
+                    // 라인별 지표
+                    else if (subKey === 'byLine') {
+                        const curIdx = dataManager.data.meta.month - 1;
+                        Object.keys(kd).forEach(line => {
+                            const v = values[`mt_${catKey}_byLine_${line}_m${curIdx}`];
+                            if (v !== undefined) {
+                                if (!kd[line]) kd[line] = { monthly: new Array(12).fill(null) };
+                                kd[line].monthly[curIdx] = v;
+                            }
+                        });
+                    }
+                });
+                if (values[`mt_${catKey}_analysis`] !== undefined) {
+                    cat.analysis = values[`mt_${catKey}_analysis`];
+                }
+            });
+        } else {
+            Object.keys(data).forEach(key => {
+                const kd = data[key];
+                if (!kd || (!kd.yearly && !kd.monthly)) return;
 
-            for (let i = 0; i < 4; i++) {
-                const v = values[`bulk_${key}_y${i}`];
-                if (v !== undefined && kd.yearly) kd.yearly[i] = v;
-            }
-            for (let i = 0; i < 12; i++) {
-                const v = values[`bulk_${key}_m${i}`];
-                if (v !== undefined && kd.monthly) kd.monthly[i] = v;
-            }
-        });
+                const targetVal = values[`bulk_${key}_target`];
+                if (targetVal !== undefined) kd.target = targetVal;
+
+                for (let i = 0; i < 4; i++) {
+                    const v = values[`bulk_${key}_y${i}`];
+                    if (v !== undefined && kd.yearly) kd.yearly[i] = v;
+                }
+                for (let i = 0; i < 12; i++) {
+                    const v = values[`bulk_${key}_m${i}`];
+                    if (v !== undefined && kd.monthly) kd.monthly[i] = v;
+                }
+            });
+        }
 
         await dataManager.updateSectionData(sectionId, data);
         closeModal();

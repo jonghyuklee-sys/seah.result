@@ -400,6 +400,31 @@ class DataManager {
                 timeElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
                 countElec: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
             },
+            maintenanceTeam: {
+                energyReduction: {
+                    byLine: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), target: 0 },
+                    exhaustWasteHeat: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), target: 0 },
+                    solarPower: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), target: 0 },
+                    inverterDrive: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), target: 0 },
+                    analysis: ''
+                },
+                downtime: {
+                    total: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), target: 0 },
+                    byLine: { CPL: { monthly: new Array(12).fill(null) }, CRM: { monthly: new Array(12).fill(null) }, CGL: { monthly: new Array(12).fill(null) }, '1CCL': { monthly: new Array(12).fill(null) }, '2CCL': { monthly: new Array(12).fill(null) }, '3CCL': { monthly: new Array(12).fill(null) } },
+                    analysis: ''
+                },
+                repairCost: {
+                    total: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), target: 0 },
+                    byLine: { CPL: { monthly: new Array(12).fill(null) }, CRM: { monthly: new Array(12).fill(null) }, CGL: { monthly: new Array(12).fill(null) }, '1CCL': { monthly: new Array(12).fill(null) }, '2CCL': { monthly: new Array(12).fill(null) }, '3CCL': { monthly: new Array(12).fill(null) } },
+                    analysis: ''
+                },
+                utility: {
+                    electricity: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), target: 0 },
+                    lng: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), target: 0 },
+                    water: { yearly: [null, null, null, null], monthly: new Array(12).fill(null), target: 0 },
+                    analysis: ''
+                }
+            },
             productionColdReports: {
                 CPL: {
                     highlights: '', issues: '', plans: '', pdfUrl: '',
@@ -895,6 +920,45 @@ class DataManager {
                 countMech: { target: 6, yearly: [7, 6, 6, 5], monthly: [5, null, null, null, null, null, null, null, null, null, null, null] },
                 timeElec: { target: 5.0, yearly: [6.0, 6.0, 6.0, 5.3], monthly: [5.3, null, null, null, null, null, null, null, null, null, null, null] },
                 countElec: { target: 4, yearly: [5, 5, 4, 3], monthly: [3, null, null, null, null, null, null, null, null, null, null, null] }
+            },
+            maintenanceTeam: {
+                energyReduction: {
+                    byLine: { yearly: [12.5, 13.8, 14.2], monthly: [0.85, null, null, null, null, null, null, null, null, null, null, null], target: 1.2 },
+                    exhaustWasteHeat: { yearly: [8.2, 9.5, 10.1], monthly: [0.65, null, null, null, null, null, null, null, null, null, null, null], target: 0.8 },
+                    solarPower: { yearly: [4.5, 5.2, 5.8], monthly: [0.42, null, null, null, null, null, null, null, null, null, null, null], target: 0.6 },
+                    inverterDrive: { yearly: [3.2, 3.8, 4.1], monthly: [0.28, null, null, null, null, null, null, null, null, null, null, null], target: 0.4 },
+                    analysis: '배기폐열회수시스템 가동 효율이 전월 대비 5% 향상됨.'
+                },
+                downtime: {
+                    total: { yearly: [155, 142, 138], monthly: [10.5, null, null, null, null, null, null, null, null, null, null, null], target: 12.0 },
+                    byLine: {
+                        CPL: { monthly: [1.2, null, null, null, null, null, null, null, null, null, null, null] },
+                        CRM: { monthly: [2.5, null, null, null, null, null, null, null, null, null, null, null] },
+                        CGL: { monthly: [1.8, null, null, null, null, null, null, null, null, null, null, null] },
+                        '1CCL': { monthly: [2.1, null, null, null, null, null, null, null, null, null, null, null] },
+                        '2CCL': { monthly: [1.4, null, null, null, null, null, null, null, null, null, null, null] },
+                        '3CCL': { monthly: [1.5, null, null, null, null, null, null, null, null, null, null, null] }
+                    },
+                    analysis: 'CRM 라인 압연유 노즐 교체로 인한 비가동 발생.'
+                },
+                repairCost: {
+                    total: { yearly: [2450, 2680, 2550], monthly: [185, null, null, null, null, null, null, null, null, null, null, null], target: 200 },
+                    byLine: {
+                        CPL: { monthly: [25, null, null, null, null, null, null, null, null, null, null, null] },
+                        CRM: { monthly: [45, null, null, null, null, null, null, null, null, null, null, null] },
+                        CGL: { monthly: [35, null, null, null, null, null, null, null, null, null, null, null] },
+                        '1CCL': { monthly: [30, null, null, null, null, null, null, null, null, null, null, null] },
+                        '2CCL': { monthly: [25, null, null, null, null, null, null, null, null, null, null, null] },
+                        '3CCL': { monthly: [25, null, null, null, null, null, null, null, null, null, null, null] }
+                    },
+                    analysis: '동절기 설비 동파 예방 수선비 집중 투입.'
+                },
+                utility: {
+                    electricity: { yearly: [12500, 13200, 12800], monthly: [1050, null, null, null, null, null, null, null, null, null, null, null], target: 1100 },
+                    lng: { yearly: [8500, 9200, 8800], monthly: [720, null, null, null, null, null, null, null, null, null, null, null], target: 750 },
+                    water: { yearly: [2100, 2300, 2200], monthly: [185, null, null, null, null, null, null, null, null, null, null, null], target: 200 },
+                    analysis: '공장 가동률 상승에 따른 용수 사용량 비례적 증가.'
+                }
             },
             productionColdReports: {
                 CPL: {

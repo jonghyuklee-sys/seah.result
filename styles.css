@@ -431,7 +431,7 @@ body {
 .card-header h3 {
     font-size: 16px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: inherit;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1204,12 +1204,12 @@ body {
 }
 
 .sub-tab {
-    padding: 8px 16px;
+    padding: 10px 18px;
     border: none;
     background: transparent;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
     cursor: pointer;
     border-radius: 6px;
     white-space: nowrap;
@@ -1218,13 +1218,15 @@ body {
 }
 
 .sub-tab:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(227, 25, 55, 0.06);
+    color: var(--seah-red);
 }
 
 .sub-tab.active {
     background: white;
     color: var(--seah-red);
     box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(227, 25, 55, 0.15);
 }
 
 .sub-content {
