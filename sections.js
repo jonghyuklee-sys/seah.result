@@ -1538,11 +1538,30 @@ const SectionRenderers = {
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grid: { color: '#e2e8f0' }
+                            grid: { color: '#e2e8f0' },
+                            grace: '15%'
                         },
                         x: { grid: { display: false } }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'metricBarLabels',
+                    afterDatasetsDraw(chart) {
+                        const { ctx: c } = chart;
+                        chart.data.datasets[0].data.forEach((value, i) => {
+                            if (value === null || value === undefined) return;
+                            const bar = chart.getDatasetMeta(0).data[i];
+                            if (!bar) return;
+                            c.save();
+                            c.textAlign = 'center';
+                            c.font = 'bold 11px "Noto Sans KR"';
+                            c.fillStyle = '#ef4444';
+                            const displayVal = Number.isInteger(value) ? value.toLocaleString() : value.toFixed(2);
+                            c.fillText(displayVal, bar.x, bar.y - 6);
+                            c.restore();
+                        });
+                    }
+                }]
             });
         }, 50);
     },
@@ -1666,7 +1685,36 @@ const SectionRenderers = {
                         legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 15, font: { size: 11 } } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, borderRadius: 8 }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'doughnutLabels',
+                    afterDatasetsDraw(chart) {
+                        const { ctx: c } = chart;
+                        const dataset = chart.data.datasets[0];
+                        const total = dataset.data.reduce((a, b) => a + (b || 0), 0);
+                        const meta = chart.getDatasetMeta(0);
+                        meta.data.forEach((arc, i) => {
+                            const value = dataset.data[i];
+                            if (!value) return;
+                            const pct = total > 0 ? Math.round(value / total * 100) : 0;
+                            const centerAngle = (arc.startAngle + arc.endAngle) / 2;
+                            const outerRadius = arc.outerRadius;
+                            const innerRadius = arc.innerRadius;
+                            const midRadius = (outerRadius + innerRadius) / 2;
+                            const x = arc.x + Math.cos(centerAngle) * midRadius;
+                            const y = arc.y + Math.sin(centerAngle) * midRadius;
+                            c.save();
+                            c.textAlign = 'center';
+                            c.textBaseline = 'middle';
+                            c.font = 'bold 10px "Noto Sans KR"';
+                            c.fillStyle = '#fff';
+                            if (pct >= 5) {
+                                c.fillText(pct + '%', x, y);
+                            }
+                            c.restore();
+                        });
+                    }
+                }]
             });
 
             createGroupedBarChart('chart-team-prod-compare', {
@@ -2125,8 +2173,28 @@ const SectionRenderers = {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, title: { display: true, text: 'MWh' } } }
-            }
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'MWh' }, grace: '15%' },
+                    x: { grid: { display: false } }
+                }
+            },
+            plugins: [{
+                id: 'energyBarLabels',
+                afterDatasetsDraw(chart) {
+                    const { ctx: c } = chart;
+                    chart.data.datasets[0].data.forEach((value, i) => {
+                        if (!value) return;
+                        const bar = chart.getDatasetMeta(0).data[i];
+                        if (!bar) return;
+                        c.save();
+                        c.textAlign = 'center';
+                        c.font = 'bold 12px "Noto Sans KR"';
+                        c.fillStyle = '#1e293b';
+                        c.fillText(value.toFixed(2), bar.x, bar.y - 6);
+                        c.restore();
+                    });
+                }
+            }]
         });
 
         // Downtime Chart (Pie/Doughnut)
@@ -2148,7 +2216,34 @@ const SectionRenderers = {
                     legend: { position: 'right' },
                     title: { display: true, text: '라인별 비가동 시간 비중 (hr)' }
                 }
-            }
+            },
+            plugins: [{
+                id: 'downtimeDoughnutLabels',
+                afterDatasetsDraw(chart) {
+                    const { ctx: c } = chart;
+                    const dataset = chart.data.datasets[0];
+                    const total = dataset.data.reduce((a, b) => a + (b || 0), 0);
+                    const meta = chart.getDatasetMeta(0);
+                    meta.data.forEach((arc, i) => {
+                        const value = dataset.data[i];
+                        if (!value) return;
+                        const pct = total > 0 ? Math.round(value / total * 100) : 0;
+                        const centerAngle = (arc.startAngle + arc.endAngle) / 2;
+                        const midRadius = (arc.outerRadius + arc.innerRadius) / 2;
+                        const x = arc.x + Math.cos(centerAngle) * midRadius;
+                        const y = arc.y + Math.sin(centerAngle) * midRadius;
+                        c.save();
+                        c.textAlign = 'center';
+                        c.textBaseline = 'middle';
+                        c.font = 'bold 10px "Noto Sans KR"';
+                        c.fillStyle = '#fff';
+                        if (pct >= 5) {
+                            c.fillText(value.toFixed(1) + 'h', x, y);
+                        }
+                        c.restore();
+                    });
+                }
+            }]
         });
 
         // Repair Cost Trend Chart
@@ -2179,8 +2274,27 @@ const SectionRenderers = {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } }
-            }
+                scales: { y: { beginAtZero: true, grace: '15%' } }
+            },
+            plugins: [{
+                id: 'repairCostLabels',
+                afterDatasetsDraw(chart) {
+                    const { ctx: c } = chart;
+                    // Only show labels for actual data (dataset index 1)
+                    const meta = chart.getDatasetMeta(1);
+                    chart.data.datasets[1].data.forEach((value, i) => {
+                        if (value === null || value === undefined) return;
+                        const point = meta.data[i];
+                        if (!point) return;
+                        c.save();
+                        c.textAlign = 'center';
+                        c.font = 'bold 9px "Noto Sans KR"';
+                        c.fillStyle = '#3b82f6';
+                        c.fillText(value.toLocaleString(), point.x, point.y - 8);
+                        c.restore();
+                    });
+                }
+            }]
         });
 
         // Utility Trend
@@ -2205,7 +2319,25 @@ const SectionRenderers = {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: { r: { beginAtZero: true, max: 120, ticks: { stepSize: 20 } } }
-            }
+            },
+            plugins: [{
+                id: 'radarValueLabels',
+                afterDatasetsDraw(chart) {
+                    const { ctx: c } = chart;
+                    const meta = chart.getDatasetMeta(0);
+                    chart.data.datasets[0].data.forEach((value, i) => {
+                        if (value === null || value === undefined) return;
+                        const point = meta.data[i];
+                        if (!point) return;
+                        c.save();
+                        c.textAlign = 'center';
+                        c.font = 'bold 11px "Noto Sans KR"';
+                        c.fillStyle = '#d97706';
+                        c.fillText(Math.round(value) + '%', point.x, point.y - 10);
+                        c.restore();
+                    });
+                }
+            }]
         });
     },
 

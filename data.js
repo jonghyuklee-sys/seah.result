@@ -257,6 +257,141 @@ class DataManager {
         await this.loadMonth(year, month);
     }
 
+    // 엑셀 데이터 임포트 및 매핑
+    async importExcelData(jsonData) {
+        console.log('📊 엑셀 데이터 매핑 시작:', jsonData);
+
+        let updatedCount = 0;
+        const curMonthIdx = this.currentMonth - 1;
+        const yearMonthLabel = `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}`; // 예: 2026-01
+        const shortMonthLabel = `${this.currentMonth}월`; // 예: 1월
+
+        // 실적 값을 찾기 위한 후보 헤더들
+        const actualValueLabels = ['실적', 'Actual', 'Value', yearMonthLabel, shortMonthLabel, `${this.currentYear}-${this.currentMonth}`];
+
+        for (const sheetName in jsonData) {
+            const rows = jsonData[sheetName];
+            if (!rows || !Array.isArray(rows) || rows.length === 0) continue;
+
+            // 1. 제조원가 절감 현황 (costReduction)
+            if (sheetName.includes('제조원가') || sheetName === 'costReduction') {
+                rows.forEach(row => {
+                    const line = (row['라인'] || row['Line'] || row['항목'] || '').toString().trim();
+                    if (!line) return;
+
+                    // 라인 매칭 (대소문자 무시)
+                    const targetLine = Object.keys(this.data.costReduction.lineData.unitCost).find(k => k.toLowerCase() === line.toLowerCase());
+
+                    if (targetLine) {
+                        const uc = this.data.costReduction.lineData.unitCost[targetLine];
+                        const imp = this.data.costReduction.lineData.improvement[targetLine];
+
+                        // 실적 값 찾기
+                        let val = undefined;
+                        for (const label of actualValueLabels) {
+                            if (row[label] !== undefined) {
+                                val = parseFloat(row[label].toString().replace(/,/g, ''));
+                                if (!isNaN(val)) break;
+                            }
+                        }
+
+                        if (val !== undefined && !isNaN(val)) {
+                            uc.m_actual = val;
+                            updatedCount++;
+                        }
+
+                        // 개선금액 (개선금액 헤더가 있을 경우)
+                        if (row['개선금액'] !== undefined) {
+                            const impVal = parseFloat(row['개선금액'].toString().replace(/,/g, ''));
+                            if (!isNaN(impVal)) imp.m_actual = impVal;
+                        }
+                    }
+                });
+            }
+
+            // 2. 연도별/월별 공통 지표 (yield, operationRate, lng, power, tonPower, scrap, breakdown 등)
+            const metricMap = {
+                '수율': 'yield',
+                '현황': 'yield', // '수율 현황' 대응
+                '가동률': 'operationRate',
+                '실가동률': 'operationRate',
+                'LNG': 'lng',
+                '전력': 'power',
+                '톤파워': 'tonPower',
+                '스크랩': 'scrap',
+                '설비고장': 'breakdown',
+                '설비효율': 'equipEfficiency'
+            };
+
+            let targetKey = null;
+            for (const [kr, en] of Object.entries(metricMap)) {
+                if (sheetName.includes(kr)) {
+                    targetKey = en;
+                    break;
+                }
+            }
+
+            if (targetKey && this.data[targetKey]) {
+                const section = this.data[targetKey];
+                rows.forEach(row => {
+                    const item = (row['라인'] || row['항목'] || row['Line'] || row['구분'] || '').toString().trim();
+                    if (!item) return;
+
+                    // 항목 매칭 (대소문자 무시: STEEL -> steel)
+                    const targetItemKey = Object.keys(section).find(k => k.toLowerCase() === item.toLowerCase());
+
+                    if (targetItemKey && section[targetItemKey].monthly) {
+                        let val = undefined;
+                        for (const label of actualValueLabels) {
+                            if (row[label] !== undefined) {
+                                val = parseFloat(row[label].toString().replace(/,/g, ''));
+                                if (!isNaN(val)) break;
+                            }
+                        }
+
+                        if (val !== undefined && !isNaN(val)) {
+                            section[targetItemKey].monthly[curMonthIdx] = val;
+                            updatedCount++;
+                        }
+
+                        if (row['목표'] !== undefined || row['Target'] !== undefined) {
+                            const tVal = parseFloat((row['목표'] || row['Target']).toString().replace(/,/g, ''));
+                            if (!isNaN(tVal)) section[targetItemKey].target = tVal;
+                        }
+                    }
+                });
+            }
+
+            // 3. 주요과제 (keyTasks)
+            if (sheetName.includes('주요과제') || sheetName === 'keyTasks') {
+                rows.forEach(row => {
+                    const team = (row['팀'] || row['Team'] || '').toString().trim();
+                    if (!team) return;
+
+                    const targetTeam = Object.keys(this.data.keyTasks.teamSummary).find(k => k.toLowerCase().includes(team.toLowerCase()));
+                    if (targetTeam) {
+                        const ts = this.data.keyTasks.teamSummary[targetTeam];
+                        if (row['당월'] !== undefined || row['당월실적'] !== undefined) {
+                            const mVal = parseFloat((row['당월'] || row['당월실적']).toString().replace(/,/g, ''));
+                            if (!isNaN(mVal)) { ts.monthly = mVal; updatedCount++; }
+                        }
+                        if (row['누계'] !== undefined || row['누계실적'] !== undefined) {
+                            const cVal = parseFloat((row['누계'] || row['누계실적']).toString().replace(/,/g, ''));
+                            if (!isNaN(cVal)) ts.cumulative = cVal;
+                        }
+                    }
+                });
+            }
+        }
+
+        if (updatedCount > 0) {
+            await this.save();
+            console.log(`✅ ${updatedCount}개의 항목이 업데이트되었습니다.`);
+            return updatedCount;
+        }
+        return 0;
+    }
+
     // 이전 월 데이터 복사하여 새 월 생성
     async copyFromPreviousMonth(targetYear, targetMonth) {
         let prevYear = targetYear;

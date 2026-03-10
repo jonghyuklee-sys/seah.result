@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>세아씨엠 성과개선 보고</title>
     <meta name="description" content="세아씨엠 월별 성과개선 보고 시스템 - 데이터 입력 및 자동 차트 생성">
+    <link rel="icon" href="seah-logo.jpg" type="image/jpeg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap"
         rel="stylesheet">
@@ -13,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script
         src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -156,6 +158,11 @@
                         <option value="12">12월</option>
                     </select>
                 </div>
+                <button class="btn-edit" id="btnExcelUpload"
+                    style="margin-right:8px; background: #10b981; color: white; border: none;">
+                    <i class="fas fa-file-excel"></i> 엑셀 업로드
+                </button>
+                <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none">
                 <button class="btn-save-all" id="btnSaveAll">
                     <i class="fas fa-save"></i> 전체 저장
                 </button>

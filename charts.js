@@ -575,7 +575,41 @@ function createInventoryChart(canvasId, config) {
                     grace: '15%' // Added grace to y scale
                 }
             }
-        }
+        },
+        plugins: [{
+            id: 'inventoryValueLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx: c } = chart;
+                // Bar values
+                const barMeta = chart.getDatasetMeta(0);
+                chart.data.datasets[0].data.forEach((value, i) => {
+                    if (value === null || value === undefined) return;
+                    const bar = barMeta.data[i];
+                    if (!bar) return;
+                    c.save();
+                    c.textAlign = 'center';
+                    c.font = 'bold 9px "Noto Sans KR"';
+                    c.fillStyle = '#374151';
+                    c.fillText(value.toLocaleString(), bar.x, bar.y - 5);
+                    c.restore();
+                });
+                // Line values
+                if (chart.data.datasets[1]) {
+                    const lineMeta = chart.getDatasetMeta(1);
+                    chart.data.datasets[1].data.forEach((value, i) => {
+                        if (value === null || value === undefined) return;
+                        const point = lineMeta.data[i];
+                        if (!point) return;
+                        c.save();
+                        c.textAlign = 'center';
+                        c.font = 'bold 9px "Noto Sans KR"';
+                        c.fillStyle = '#E31937';
+                        c.fillText(value.toLocaleString(), point.x, point.y - 8);
+                        c.restore();
+                    });
+                }
+            }
+        }]
     });
 
     chartInstances[canvasId] = chart;
@@ -682,7 +716,46 @@ function createMfgCostChart(canvasId, config) {
                     ticks: { callback: function (v) { return v.toLocaleString(); } }
                 }
             }
-        }
+        },
+        plugins: [{
+            id: 'mfgCostValueLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx: c } = chart;
+                // Stacked bar total values (고정비 + 변동비)
+                const fixedMeta = chart.getDatasetMeta(0);
+                const varMeta = chart.getDatasetMeta(1);
+                const fixedDs = chart.data.datasets[0].data;
+                const varDs = chart.data.datasets[1].data;
+                fixedDs.forEach((fv, i) => {
+                    const vv = varDs[i] || 0;
+                    const total = (fv || 0) + vv;
+                    if (total === 0) return;
+                    const bar = varMeta.data[i]; // 변동비가 위에 올라감
+                    if (!bar) return;
+                    c.save();
+                    c.textAlign = 'center';
+                    c.font = 'bold 9px "Noto Sans KR"';
+                    c.fillStyle = '#1e293b';
+                    c.fillText(Math.round(total).toLocaleString(), bar.x, bar.y - 5);
+                    c.restore();
+                });
+                // Line values (생산량)
+                if (chart.data.datasets[2]) {
+                    const lineMeta = chart.getDatasetMeta(2);
+                    chart.data.datasets[2].data.forEach((value, i) => {
+                        if (value === null || value === undefined) return;
+                        const point = lineMeta.data[i];
+                        if (!point) return;
+                        c.save();
+                        c.textAlign = 'center';
+                        c.font = 'bold 9px "Noto Sans KR"';
+                        c.fillStyle = '#f97316';
+                        c.fillText(value.toLocaleString(), point.x, point.y - 8);
+                        c.restore();
+                    });
+                }
+            }
+        }]
     });
 
     chartInstances[canvasId] = chart;
@@ -749,7 +822,29 @@ function createCommonTrendChart(canvasId, config) {
                     ticks: { font: { size: 10 } }
                 } : undefined
             }
-        }
+        },
+        plugins: [{
+            id: 'commonTrendValueLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx: c } = chart;
+                chart.data.datasets.forEach((dataset, dsi) => {
+                    const meta = chart.getDatasetMeta(dsi);
+                    const isLine = dataset.type === 'line';
+                    meta.data.forEach((el, i) => {
+                        const value = dataset.data[i];
+                        if (value === null || value === undefined) return;
+                        c.save();
+                        c.textAlign = 'center';
+                        c.font = `bold ${isLine ? '9' : '9'}px "Noto Sans KR"`;
+                        c.fillStyle = dataset.borderColor || dataset.backgroundColor || '#374151';
+                        const yOffset = isLine ? -8 : -5;
+                        const displayVal = Number.isInteger(value) ? value.toLocaleString() : value.toFixed(1);
+                        c.fillText(displayVal, el.x, el.y + yOffset);
+                        c.restore();
+                    });
+                });
+            }
+        }]
     });
 
     chartInstances[canvasId] = chart;

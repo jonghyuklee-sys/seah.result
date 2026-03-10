@@ -636,6 +636,78 @@
     }
 
     // ==========================================
+    // Excel Upload
+    // ==========================================
+    async function handleExcelUpload(file) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const result = {};
+                workbook.SheetNames.forEach(sheetName => {
+                    const worksheet = workbook.Sheets[sheetName];
+                    // 1. 먼저 배열 형태로 전체 데이터를 읽음
+                    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    // 2. 실제 헤더 행(구분, 라인, 항목 등이 포함된 행)을 찾음
+                    let headerIndex = -1;
+                    for (let i = 0; i < Math.min(rawData.length, 20); i++) {
+                        const row = rawData[i];
+                        if (row && row.some(cell => {
+                            const c = String(cell || '').trim();
+                            return ['구분', '라인', '항목', 'Line', 'Team', '팀'].includes(c);
+                        })) {
+                            headerIndex = i;
+                            break;
+                        }
+                    }
+
+                    // 3. 헤더를 찾았으면 해당 지점부터 객체 배열로 변환
+                    if (headerIndex !== -1) {
+                        const headers = rawData[headerIndex];
+                        result[sheetName] = rawData.slice(headerIndex + 1).map(row => {
+                            const obj = {};
+                            headers.forEach((h, i) => {
+                                if (h !== undefined && h !== null) {
+                                    // 헤더 명칭을 문자열로 정규화
+                                    let headKey = String(h).trim();
+                                    obj[headKey] = row[i];
+                                }
+                            });
+                            return obj;
+                        });
+                    } else {
+                        // 헤더를 못 찾은 경우 기본 방식으로 변환
+                        const headers = rawData[0];
+                        if (headers) {
+                            result[sheetName] = rawData.slice(1).map(row => {
+                                const obj = {};
+                                headers.forEach((h, i) => { if (h) obj[h] = row[i]; });
+                                return obj;
+                            });
+                        }
+                    }
+                });
+
+                showToast('데이터 분석 및 매핑 중...');
+                const updatedCount = await dataManager.importExcelData(result);
+
+                if (updatedCount > 0) {
+                    showToast(`${updatedCount}개의 데이터가 업데이트되었습니다.`);
+                    navigateTo(currentSection);
+                } else {
+                    showToast('매칭되는 데이터를 찾지 못했습니다.');
+                }
+            } catch (err) {
+                console.error('Excel Parsing Error:', err);
+                alert('엑셀 파일 파싱 중 오류가 발생했습니다.');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // ==========================================
     // Event Listeners
     // ==========================================
     async function init() {
@@ -778,6 +850,17 @@
             } finally {
                 btnSaveAll.disabled = false;
                 btnSaveAll.innerHTML = '<i class="fas fa-save"></i> 전체 저장';
+            }
+        });
+
+        // 엑셀 업로드 버튼
+        const btnExcelUpload = document.getElementById('btnExcelUpload');
+        const excelInput = document.getElementById('excelInput');
+        btnExcelUpload?.addEventListener('click', () => excelInput.click());
+        excelInput?.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleExcelUpload(e.target.files[0]);
+                e.target.value = ''; // Reset
             }
         });
 
