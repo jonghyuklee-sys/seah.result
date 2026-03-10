@@ -119,6 +119,7 @@ const SectionRenderers = {
     },
     costReduction(container) {
         const d = dataManager.getSectionData('costReduction');
+        const d_lp = dataManager.getSectionData('linePerformance');
         const meta = dataManager.data.meta;
 
         container.innerHTML = `
@@ -291,7 +292,85 @@ const SectionRenderers = {
                         </table>
                    </div>
                </div>
-           </div>
+            </div>
+
+            <!-- 라인별 실적 (이동됨) -->
+            <div class="grid-2" style="margin-top:20px">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>${meta.year}년 ${meta.month}월 제조원가 절감 현황 (라인별)</h3>
+                        <div class="card-actions">
+                            <button class="btn-edit" onclick="openEditModal('linePerformance', 'costReduction')">
+                                <i class="fas fa-edit"></i> 데이터 수정
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height:350px">
+                            <canvas id="chart-line-cost"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>${meta.year}년 ${meta.month}월 생산 현황 (라인별)</h3>
+                        <div class="card-actions">
+                            <button class="btn-edit" onclick="openEditModal('linePerformance', 'production')">
+                                <i class="fas fa-edit"></i> 데이터 수정
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height:350px">
+                            <canvas id="chart-line-prod"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 상세 데이터 테이블 (이동됨) -->
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header"><h3>제조원가 절감 상세</h3></div>
+                    <div class="card-body">
+                        <div class="data-table-wrapper">
+                            <table class="data-table">
+                                <thead><tr><th>라인</th><th>목표</th><th>24년 대비</th><th>4분기 대비</th></tr></thead>
+                                <tbody>
+                                    ${LINES.map(l => {
+                const v = d_lp.costReduction?.[l] || {};
+                return `<tr><td><strong>${l}</strong></td>
+                                            <td>${formatNumber(v.target)}</td>
+                                            <td class="${getValueClass(v.y24)}">${formatNumber(v.y24)}</td>
+                                            <td class="${getValueClass(v.q4)}">${formatNumber(v.q4)}</td></tr>`;
+            }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                   </div>
+               </div>
+                <div class="card">
+                    <div class="card-header"><h3>생산 현황 상세</h3></div>
+                    <div class="card-body">
+                        <div class="data-table-wrapper">
+                            <table class="data-table">
+                                <thead><tr><th>라인</th><th>24월평균</th><th>계획량</th><th>생산량</th><th>달성율</th></tr></thead>
+                                <tbody>
+                                    ${LINES.map(l => {
+                const v = d_lp.production?.[l] || {};
+                const rate = v.plan ? Math.round(v.actual / v.plan * 100) : '-';
+                return `<tr><td><strong>${l}</strong></td>
+                                            <td>${formatNumber(v.avg24)}</td>
+                                            <td>${formatNumber(v.plan)}</td>
+                                            <td>${formatNumber(v.actual)}</td>
+                                            <td class="${rate >= 100 ? 'positive-val' : rate < 90 ? 'negative-val' : ''}">${rate}%</td></tr>`;
+            }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                   </div>
+               </div>
+            </div>
         `;
 
         // 차트 렌더링
@@ -309,6 +388,25 @@ const SectionRenderers = {
                 colors: ['#3b82f6', '#6d9b3a', '#f59e0b'],
                 title: '생산량',
                 showPercent: true
+            });
+
+            createGroupedBarChart('chart-line-cost', {
+                labels: LINES,
+                datasets: [
+                    { label: '목표', data: LINES.map(l => d_lp.costReduction?.[l]?.target || 0) },
+                    { label: '25년 대비', data: LINES.map(l => d_lp.costReduction?.[l]?.y25 || 0) },
+                    { label: '4분기 대비', data: LINES.map(l => d_lp.costReduction?.[l]?.q4 || 0) }
+                ],
+                title: '제조원가 절감 현황'
+            });
+            createGroupedBarChart('chart-line-prod', {
+                labels: LINES,
+                datasets: [
+                    { label: '25월평균', data: LINES.map(l => d_lp.production?.[l]?.avg25 || d_lp.production?.[l]?.avg24 || 0) },
+                    { label: '계획량', data: LINES.map(l => d_lp.production?.[l]?.plan || 0) },
+                    { label: '생산량', data: LINES.map(l => d_lp.production?.[l]?.actual || 0) }
+                ],
+                title: '생산 현황'
             });
         }, 100);
     },
