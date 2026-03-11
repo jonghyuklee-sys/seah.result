@@ -11,12 +11,18 @@ const SectionRenderers = {
         const cost = dataManager.getSectionData('costReduction');
         const tasks = dataManager.getSectionData('keyTasks');
         const meta = dataManager.data.meta;
+        const icon = 'fas fa-th-large';
 
         container.innerHTML = `
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>성과개선 종합 대시보드</h3>
+                </div>
+            </div>
             <div class="summary-row">
                 <div class="summary-card positive">
                     <span class="summary-label">원가 절감 누적 (25년 대비)</span>
-                    <span class="summary-value">${formatNumber(cost.actual25 || cost.actual24)}</span>
+                    <span class="summary-value">${formatNumber(cost.actual25)}</span>
                     <span class="summary-change">억원 (달성 ${cost.changeRate}%)</span>
                </div>
                 <div class="summary-card info">
@@ -121,23 +127,20 @@ const SectionRenderers = {
         const d = dataManager.getSectionData('costReduction');
         const d_lp = dataManager.getSectionData('linePerformance');
         const meta = dataManager.data.meta;
+        const icon = 'fas fa-chart-line';
 
         container.innerHTML = `
             <div class="card" style="margin-bottom:20px">
-                <div class="card-header">
-                    <h3>제조원가 절감 현황</h3>
-                    <div class="card-actions">
-                        <button class="btn-edit" onclick="openBulkEditModal('costReduction')">
-                            <i class="fas fa-edit"></i> 전체 데이터 수정
-                        </button>
-                    </div>
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>제조원가 절감 현황</h3>
                 </div>
             </div>
+            
             <!-- 요약 카드-->
             <div class="summary-row">
                 <div class="summary-card ${d.changeRate >= 0 ? 'positive' : 'negative'}">
                     <span class="summary-label">원가 절감 실적 (25년 대비)</span>
-                    <span class="summary-value">${formatNumber(d.actual25 || d.actual24)}</span>
+                    <span class="summary-value">${formatNumber(d.actual25)}</span>
                     <span class="summary-change ${d.changeRate >= 0 ? 'up' : 'down'}">${d.changeRate}%</span>
                 </div>
                 <div class="summary-card ${d.q4Compare >= 0 ? 'positive' : 'negative'}">
@@ -161,7 +164,9 @@ const SectionRenderers = {
             <div class="grid-2">
                 <div class="card">
                     <div class="card-header">
-                        <h3>원가 절감 실적</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 원가 절감 실적
+                        </h3>
                         <div class="card-actions">
                             <button class="btn-edit" onclick="openEditModal('costReduction', 'summary')">
                                 <i class="fas fa-edit"></i> 데이터 수정
@@ -176,7 +181,9 @@ const SectionRenderers = {
                </div>
                 <div class="card">
                     <div class="card-header">
-                        <h3>생산량</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 생산량
+                        </h3>
                         <div class="card-actions">
                             <button class="btn-edit" onclick="openEditModal('costReduction', 'production')">
                                 <i class="fas fa-edit"></i> 데이터 수정
@@ -194,7 +201,9 @@ const SectionRenderers = {
             <!-- 실적 분석-->
             <div class="card">
                 <div class="card-header">
-                    <h3>실적 분석 <span class="badge">${d.analysis?.comment || ''}</span></h3>
+                    <h3 style="display:flex; align-items:center; gap:8px">
+                        <i class="${icon}" style="color:#3b82f6"></i> 실적 분석 <span class="badge" style="margin-left:8px">${d.analysis?.comment || ''}</span>
+                    </h3>
                     <div class="card-actions">
                         <button class="btn-edit" onclick="openEditModal('costReduction', 'analysis')">
                             <i class="fas fa-edit"></i> 수정
@@ -228,7 +237,9 @@ const SectionRenderers = {
             <!-- 라인별 제조원가 절감 현황 테이블-->
             <div class="card">
                 <div class="card-header">
-                    <h3>라인별 제조원가 절감 현황</h3>
+                    <h3 style="display:flex; align-items:center; gap:8px">
+                        <i class="${icon}" style="color:#3b82f6"></i> 라인별 제조원가 절감 현황
+                    </h3>
                     <div class="card-actions">
                         <button class="btn-edit" onclick="openEditModal('costReduction', 'lineData')">
                             <i class="fas fa-edit"></i> 데이터 수정
@@ -268,8 +279,8 @@ const SectionRenderers = {
                                     <td>${d.yieldRate?.y24 || '-'}</td><td>${d.yieldRate?.y25 || '-'}</td>
                                     <td>${(d.yieldRate?.m_prev ?? d.yieldRate?.m1_prev) || '-'}</td><td>${(d.yieldRate?.m_goal ?? d.yieldRate?.m1_goal) || '-'}</td>
                                     <td>${(d.yieldRate?.m_actual ?? d.yieldRate?.m1) || '-'}</td>
-                                    <td class="${getValueClass(d.improvement?.yield?.m_actual ?? d.improvement?.yield?.m1)}">${formatNumber(d.improvement?.yield?.m_actual ?? d.improvement?.yield?.m1)}</td>
-                                    <td class="${getValueClass(d.improvement?.yield?.m_actual ?? d.improvement?.yield?.m1)}"><strong>${formatNumber(d.improvement?.yield?.m_actual ?? d.improvement?.yield?.m1)}</strong></td>
+                                    <td class="${getValueClass(d.lineData?.improvement?.yield?.m_actual ?? d.lineData?.improvement?.yield?.m1)}">${formatNumber(d.lineData?.improvement?.yield?.m_actual ?? d.lineData?.improvement?.yield?.m1)}</td>
+                                    <td class="${getValueClass(d.lineData?.improvement?.yield?.m_actual ?? d.lineData?.improvement?.yield?.m1)}"><strong>${formatNumber(d.lineData?.improvement?.yield?.m_actual ?? d.lineData?.improvement?.yield?.m1)}</strong></td>
                                 </tr>
                                 <tr class="total-row">
                                     <td><strong>합계</strong></td>
@@ -376,15 +387,15 @@ const SectionRenderers = {
         // 차트 렌더링
         setTimeout(() => {
             createSimpleBarChart('chart-cost-summary', {
-                labels: ['목표', '실적(24년대비)', '4분기 대비'],
-                values: [d.target, d.actual24, d.q4Compare],
-                colors: ['#3b82f6', d.actual24 >= 0 ? '#10b981' : '#ef4444', d.q4Compare >= 0 ? '#6d9b3a' : '#f59e0b'],
+                labels: ['목표', '실적(25년대비)', '4분기 대비'],
+                values: [d.target, d.actual25, d.q4Compare],
+                colors: ['#3b82f6', d.actual25 >= 0 ? '#10b981' : '#ef4444', d.q4Compare >= 0 ? '#6d9b3a' : '#f59e0b'],
                 title: '원가 절감 실적',
                 unit: '억원'
             });
             createSimpleBarChart('chart-production-summary', {
-                labels: ['24년 평균', '계획', '실적'],
-                values: [d.production.avg24, d.production.plan, d.production.actual],
+                labels: ['25년 평균', '계획', '실적'],
+                values: [d.production.avg25, d.production.plan, d.production.actual],
                 colors: ['#3b82f6', '#6d9b3a', '#f59e0b'],
                 title: '생산량',
                 showPercent: true
@@ -417,22 +428,21 @@ const SectionRenderers = {
     linePerformance(container) {
         const d = dataManager.getSectionData('linePerformance');
         const meta = dataManager.data.meta;
+        const icon = 'fas fa-layer-group';
 
         container.innerHTML = `
             <div class="card" style="margin-bottom:20px">
-                <div class="card-header">
-                    <h3>라인별 실적</h3>
-                    <div class="card-actions">
-                        <button class="btn-edit" onclick="openBulkEditModal('linePerformance')">
-                            <i class="fas fa-edit"></i> 전체 데이터 수정
-                        </button>
-                    </div>
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>라인별 실적</h3>
                 </div>
+            </div>
             </div>
             <div class="grid-2">
                 <div class="card">
                     <div class="card-header">
-                        <h3>${meta.year}년 ${meta.month}월 제조원가 절감 현황</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> ${meta.year}년 ${meta.month}월 제조원가 절감 현황
+                        </h3>
                         <div class="card-actions">
                             <button class="btn-edit" onclick="openEditModal('linePerformance', 'costReduction')">
                                 <i class="fas fa-edit"></i> 데이터 수정
@@ -447,7 +457,9 @@ const SectionRenderers = {
                 </div>
                 <div class="card">
                     <div class="card-header">
-                        <h3>${meta.year}년 ${meta.month}월 생산 현황</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> ${meta.year}년 ${meta.month}월 생산 현황
+                        </h3>
                         <div class="card-actions">
                             <button class="btn-edit" onclick="openEditModal('linePerformance', 'production')">
                                 <i class="fas fa-edit"></i> 데이터 수정
@@ -462,10 +474,13 @@ const SectionRenderers = {
                 </div>
             </div>
 
-            <!-- 상세 데이터 테이블-->
             <div class="grid-2">
                 <div class="card">
-                    <div class="card-header"><h3>제조원가 절감 상세</h3></div>
+                    <div class="card-header">
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 제조원가 절감 상세
+                        </h3>
+                    </div>
                     <div class="card-body">
                         <table class="data-table">
                             <thead><tr><th>라인</th><th>목표</th><th>24년 대비</th><th>4분기 대비</th></tr></thead>
@@ -482,7 +497,11 @@ const SectionRenderers = {
                    </div>
                </div>
                 <div class="card">
-                    <div class="card-header"><h3>생산 현황 상세</h3></div>
+                    <div class="card-header">
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 생산 현황 상세
+                        </h3>
+                    </div>
                     <div class="card-body">
                         <table class="data-table">
                             <thead><tr><th>라인</th><th>24월평균</th><th>계획량</th><th>생산량</th><th>달성율</th></tr></thead>
@@ -581,14 +600,10 @@ const SectionRenderers = {
 
             container.innerHTML = `
             <div class="card" style="margin-bottom:20px">
-                <div class="card-header">
-                    <h3>${meta.year}년 주요과제 진행사항 (종합 현황)</h3>
-                    <div class="card-actions">
-                        <button class="btn-edit" onclick="openBulkEditModal('keyTasks')">
-                            <i class="fas fa-edit"></i> 전체 데이터 수정
-                        </button>
-                    </div>
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="fas fa-tasks" style="margin-right:12px; color:#f59e0b"></i>${meta.year}년 주요과제 진행사항</h3>
                 </div>
+            </div>
                 <div class="card-body">
                     <div class="data-table-wrapper">
                         <table class="data-table">
@@ -735,6 +750,7 @@ const SectionRenderers = {
       ------------------------------------------ */
     _renderMultiLineCharts(container, sectionId, title, lineKeys, unit, options = {}) {
         const d = dataManager.getSectionData(sectionId);
+        const icon = options.icon || 'fas fa-chart-bar';
 
         const chartCards = lineKeys.map((key, i) => {
             const lineData = d[key] || {};
@@ -742,9 +758,11 @@ const SectionRenderers = {
             const displayName = key === 'composite' ? '종합' : key;
 
             return `
-    <div class="card">
+                <div class="card">
                     <div class="card-header">
-                        <h3>${displayName} ${options.subtitle || ''}</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> ${displayName} ${options.subtitle || ''}
+                        </h3>
                         <div class="card-actions">
                             <span class="target-info">목표: ${lineData.target || '-'}${unit}</span>
                             <button class="btn-edit" onclick="openEditModal('${sectionId}', '${key}')">
@@ -758,23 +776,18 @@ const SectionRenderers = {
                        </div>
                         ${lineData.analysis ? `<div class="comment-box"><p style="font-size:13px">${lineData.analysis}</p></div>` : ''}
                    </div>
-               </div>
-    `;
+                </div>
+            `;
         }).join('');
 
         container.innerHTML = `
-    <div class="card" style="margin-bottom:20px" >
-        <div class="card-header">
-            <h3>${title}</h3>
-            <div class="card-actions">
-                <button class="btn-edit" onclick="openBulkEditModal('${sectionId}')">
-                    <i class="fas fa-edit"></i> 전체 데이터 수정
-                </button>
-           </div>
-       </div>
-           </div>
-    <div class="grid-2">${chartCards}</div>
-`;
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>${title}</h3>
+                </div>
+            </div>
+            <div class="grid-2">${chartCards}</div>
+        `;
 
         setTimeout(() => {
             lineKeys.forEach(key => {
@@ -798,6 +811,7 @@ const SectionRenderers = {
     equipEfficiency(container) {
         const d = dataManager.getSectionData('equipEfficiency');
         const lines = ['CGL', '1CCL', '3CCL'];
+        const icon = 'fas fa-cogs';
 
         const chartCards = lines.map(line => {
             const lineData = d[line] || {};
@@ -805,7 +819,9 @@ const SectionRenderers = {
             return `
                 <div class="card">
                     <div class="card-header">
-                        <h3>${line} 설비종합효율</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> ${line} 설비종합효율
+                        </h3>
                         <div class="card-actions">
                             <span class="target-info">목표: ${lineData.target || '-'}%</span>
                             <button class="btn-edit" onclick="openEditModal('equipEfficiency', '${line}')"><i class="fas fa-edit"></i> 수정</button>
@@ -820,17 +836,13 @@ const SectionRenderers = {
         }).join('');
 
         container.innerHTML = `
-    <div class="card" style="margin-bottom:20px">
-        <div class="card-header">
-            <h3>설비종합효율</h3>
-            <div class="card-actions">
-                <button class="btn-edit" onclick="openBulkEditModal('equipEfficiency')">
-                    <i class="fas fa-edit"></i> 전체 데이터 수정
-                </button>
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>설비종합효율</h3>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="grid-3">${chartCards}</div>`;
+            <div class="grid-3">${chartCards}</div>
+        `;
 
         setTimeout(() => {
             lines.forEach(line => {
@@ -851,27 +863,25 @@ const SectionRenderers = {
       ------------------------------------------ */
     scrap(container) {
         const d = dataManager.getSectionData('scrap');
+        const icon = 'fas fa-recycle';
 
         container.innerHTML = `
-    <div class="card" style="margin-bottom:20px">
-        <div class="card-header">
-            <h3>스크랩 현황</h3>
-            <div class="card-actions">
-                <button class="btn-edit" onclick="openBulkEditModal('scrap')">
-                    <i class="fas fa-edit"></i> 전체 데이터 수정
-                </button>
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>스크랩 현황</h3>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="grid-2">
-        ${['steel', 'al'].map(type => {
+            <div class="grid-2">
+                ${['steel', 'al'].map(type => {
             const sd = d[type] || {};
             const label = type === 'steel' ? 'Steel 스크랩 원단위' : 'AL 스크랩 원단위';
             const chartId = `chart-scrap-${type}`;
             return `
                         <div class="card">
                             <div class="card-header">
-                                <h3>${label}</h3>
+                                <h3 style="display:flex; align-items:center; gap:8px">
+                                    <i class="${icon}" style="color:#3b82f6"></i> ${label}
+                                </h3>
                                 <div class="card-actions">
                                     <span class="target-info">목표: ${sd.target}kg</span>
                                     <button class="btn-edit" onclick="openEditModal('scrap', '${type}')"><i class="fas fa-edit"></i> 수정</button>
@@ -886,10 +896,9 @@ const SectionRenderers = {
                            </div>
                        </div>
                     `;
-        }).join('')
-            }
-           </div>
-    `;
+        }).join('')}
+            </div>
+        `;
 
         setTimeout(() => {
             ['steel', 'al'].forEach(type => {
@@ -906,11 +915,27 @@ const SectionRenderers = {
     },
 
     /*------------------------------------------
+       6.5. 생산량 현황
+      ------------------------------------------ */
+    productionStatus(container) {
+        this._renderMultiLineCharts(container, 'productionStatus', '생산량 현황',
+            ['composite', 'CPL', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'], '톤', { subtitle: '', icon: 'fas fa-industry' });
+    },
+
+    /*------------------------------------------
+       6.6. 제조원가 현황
+      ------------------------------------------ */
+    mfgCostStatus(container) {
+        this._renderMultiLineCharts(container, 'mfgCostStatus', '제조원가 현황',
+            ['composite', 'CPL', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'], '원/톤', { subtitle: '', icon: 'fas fa-coins' });
+    },
+
+    /*------------------------------------------
        7. A급 수율
       ------------------------------------------ */
     yield(container) {
         this._renderMultiLineCharts(container, 'yield', 'A급 수율',
-            ['composite', 'CPL', 'CGL', '1CCL', '2CCL', '3CCL'], '%', { subtitle: '수율' });
+            ['composite', 'CPL', 'CGL', '1CCL', '2CCL', '3CCL'], '%', { subtitle: '수율', icon: 'fas fa-bullseye' });
     },
 
     /*------------------------------------------
@@ -918,57 +943,62 @@ const SectionRenderers = {
       ------------------------------------------ */
     tonPower(container) {
         const d = dataManager.getSectionData('tonPower');
-        const lines = ['CGL', '1CCL'];
+        const lines = ['composite', 'CPL', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'];
+        const icon = 'fas fa-bolt';
 
         const chartCards = lines.map(line => {
             const ld = d[line] || {};
             const chartId = `chart-tonpower-${line}`.replace(/[^a-zA-Z0-9]/g, '_');
+            const displayName = line === 'composite' ? '종합' : line;
+
             return `
-    <div class="card">
+                <div class="card">
                     <div class="card-header">
-                        <h3>${line} 톤파워 (톤/hr)</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> ${displayName} 톤파워 (톤/hr)
+                        </h3>
                         <div class="card-actions">
-                            <span class="target-info">목표: ${ld.target}</span>
+                            <span class="target-info">목표: ${ld.target || '-'}</span>
                             <button class="btn-edit" onclick="openEditModal('tonPower', '${line}')"><i class="fas fa-edit"></i> 수정</button>
-                       </div>
-                   </div>
+                        </div>
+                    </div>
                     <div class="card-body">
-                        <div class="chart-container" style="height:320px"><canvas id="${chartId}"></canvas></div>
-                        <div class="comment-box"><p style="font-size:13px">• ${ld.analysis || ''}</p></div>
-                   </div>
-               </div>
-    `;
+                        <div class="chart-container" style="height:280px"><canvas id="${chartId}"></canvas></div>
+                        ${ld.analysis ? `<div class="comment-box"><p style="font-size:12px">• ${ld.analysis}</p></div>` : ''}
+                    </div>
+                </div>
+            `;
         }).join('');
 
         container.innerHTML = `
-    <div class="card" style="margin-bottom:20px">
-        <div class="card-header">
-            <h3>톤파워</h3>
-            <div class="card-actions">
-                <button class="btn-edit" onclick="openBulkEditModal('tonPower')">
-                    <i class="fas fa-edit"></i> 전체 데이터 수정
-                </button>
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>톤파워 현황</h3>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="grid-2">${chartCards}</div>`;
+            <div class="grid-2">${chartCards}</div>
+        `;
 
         setTimeout(() => {
             lines.forEach(line => {
                 const ld = d[line] || {};
                 const barData = [...(ld.yearly || []), ...(ld.monthly || [])];
                 const lineData = ld.index || [];
-                createComboChart(`chart-tonpower-${line}`.replace(/[^a-zA-Z0-9]/g, '_'), {
-                    labels: YEAR_MONTH_LABELS,
-                    barData: barData,
-                    lineData: lineData.length > 0 ? lineData : null,
-                    barLabel: '톤파워',
-                    lineLabel: '비교지수',
-                    target: ld.target,
-                    unit: ''
-                });
+                const chartId = `chart-tonpower-${line}`.replace(/[^a-zA-Z0-9]/g, '_');
+
+                if (document.getElementById(chartId)) {
+                    createComboChart(chartId, {
+                        labels: YEAR_MONTH_LABELS,
+                        barData: barData,
+                        lineData: lineData.length > 0 ? lineData : null,
+                        barLabel: '톤파워',
+                        lineLabel: '비교지수',
+                        target: ld.target,
+                        unit: ''
+                    });
+                }
             });
-        }, 100);
+        }, 150);
     },
 
     /*------------------------------------------
@@ -976,23 +1006,76 @@ const SectionRenderers = {
       ------------------------------------------ */
     operationRate(container) {
         this._renderMultiLineCharts(container, 'operationRate', '실가동률',
-            ['composite', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'], '%', { subtitle: '' });
+            ['composite', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'], '%', { subtitle: '', icon: 'fas fa-tachometer-alt' });
     },
 
     /*------------------------------------------
-       11. LNG원단위
+       11. 유틸리티 현황 (LNG/전력)
       ------------------------------------------ */
-    lng(container) {
-        this._renderMultiLineCharts(container, 'lng', 'LNG원단위',
-            ['composite', 'CPL', 'CGL', '1CCL', '2CCL', '3CCL'], '', { subtitle: '', higherIsBad: true });
-    },
+    utilityStatus(container) {
+        const powerData = dataManager.getSectionData('power') || {};
+        const lngData = dataManager.getSectionData('lng') || {};
+        const lines = ['CPL', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'];
 
-    /*------------------------------------------
-       12. 전력원단위
-      ------------------------------------------ */
-    power(container) {
-        this._renderMultiLineCharts(container, 'power', '전력원단위',
-            ['composite', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'], 'kW/톤', { subtitle: '', higherIsBad: true });
+        const chartCards = lines.map(line => {
+            const chartId = `chart-utility-${line}`.replace(/[^a-zA-Z0-9]/g, '_');
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="fas fa-plug" style="color:#3b82f6"></i> ${line} 유틸리티 현황
+                        </h3>
+                        <div class="card-actions">
+                            <button class="btn-edit" onclick="openBulkEditModal('utilityStatus', '${line}')"><i class="fas fa-edit"></i> 수정</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height:320px"><canvas id="${chartId}"></canvas></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="fas fa-plug" style="margin-right:12px; color:#f59e0b"></i>유틸리티 현황 (전력 / LNG)</h3>
+                </div>
+            </div>
+            <div class="grid-2">${chartCards}</div>
+        `;
+
+        setTimeout(() => {
+            lines.forEach(line => {
+                const pd = powerData[line] || { yearly: [], monthly: [] };
+                const ld = lngData[line] || { yearly: [], monthly: [] };
+                const chartId = `chart-utility-${line}`.replace(/[^a-zA-Z0-9]/g, '_');
+
+                createCommonTrendChart(chartId, {
+                    labels: YEAR_MONTH_LABELS,
+                    datasets: [
+                        {
+                            label: '전력 (kW/톤)',
+                            type: 'bar',
+                            data: [...(pd.yearly || [null, null, null, null]), ...(pd.monthly || new Array(12).fill(null))],
+                            backgroundColor: '#3b82f6',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'LNG (Nm3/톤)',
+                            type: 'line',
+                            data: [...(ld.yearly || [null, null, null, null]), ...(ld.monthly || new Array(12).fill(null))],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'transparent',
+                            pointBackgroundColor: '#ef4444',
+                            yAxisID: 'y1'
+                        }
+                    ],
+                    yTitle: '전력 (kW/톤)',
+                    y1Title: 'LNG (Nm3/톤)'
+                });
+            });
+        }, 150);
     },
 
     /*------------------------------------------
@@ -1000,22 +1083,20 @@ const SectionRenderers = {
       ------------------------------------------ */
     steam(container) {
         const d = dataManager.getSectionData('steam');
+        const icon = 'fas fa-cloud';
 
         container.innerHTML = `
-    <div class="card" style="margin-bottom:20px">
-        <div class="card-header">
-            <h3>스팀</h3>
-            <div class="card-actions">
-                <button class="btn-edit" onclick="openBulkEditModal('steam')">
-                    <i class="fas fa-edit"></i> 전체 데이터 수정
-                </button>
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>스팀현황</h3>
+                </div>
             </div>
-        </div>
-    </div>
     <div class="grid-2">
                 <div class="card">
                     <div class="card-header">
-                        <h3>스팀구매량 대상 (톤)</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 스팀구매량 대상 (톤)
+                        </h3>
                         <div class="card-actions">
                             <span class="target-info">기준선: ${d.purchase?.baseline || 1600}</span>
                             <button class="btn-edit" onclick="openEditModal('steam', 'purchase')"><i class="fas fa-edit"></i> 수정</button>
@@ -1027,40 +1108,46 @@ const SectionRenderers = {
                </div>
                 <div class="card">
                     <div class="card-header">
-                        <h3>스팀 사용량 원단위 (원/톤)</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 스팀 사용량 원단위 (원/톤)
+                        </h3>
                         <div class="card-actions">
                             <span class="target-info">기준선: ${d.usageUnit?.baseline || 1492}원/톤</span>
                             <button class="btn-edit" onclick="openEditModal('steam', 'usageUnit')"><i class="fas fa-edit"></i> 수정</button>
-                       </div>
-                   </div>
+                        </div>
+                    </div>
                     <div class="card-body">
                         <div class="chart-container" style="height:300px"><canvas id="chart-steam-usage"></canvas></div>
-                   </div>
-               </div>
+                    </div>
+                </div>
                 <div class="card">
                     <div class="card-header">
-                        <h3>자가생산량 2CCL</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 자가생산량 2CCL
+                        </h3>
                         <div class="card-actions">
                             <span class="target-info">기준선: ${d.selfProd2CCL?.baseline || 420}</span>
                             <button class="btn-edit" onclick="openEditModal('steam', 'selfProd2CCL')"><i class="fas fa-edit"></i> 수정</button>
-                       </div>
-                   </div>
+                        </div>
+                    </div>
                     <div class="card-body">
                         <div class="chart-container" style="height:300px"><canvas id="chart-steam-2ccl"></canvas></div>
-                   </div>
-               </div>
+                    </div>
+                </div>
                 <div class="card">
                     <div class="card-header">
-                        <h3>자가생산량 3CCL</h3>
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 자가생산량 3CCL
+                        </h3>
                         <div class="card-actions">
                             <span class="target-info">기준선: ${d.selfProd3CCL?.baseline || 1025}</span>
                             <button class="btn-edit" onclick="openEditModal('steam', 'selfProd3CCL')"><i class="fas fa-edit"></i> 수정</button>
-                       </div>
-                   </div>
+                        </div>
+                    </div>
                     <div class="card-body">
                         <div class="chart-container" style="height:300px"><canvas id="chart-steam-3ccl"></canvas></div>
-                   </div>
-               </div>
+                    </div>
+                </div>
            </div>
     `;
 
@@ -1092,192 +1179,111 @@ const SectionRenderers = {
     },
 
     /*------------------------------------------
-       14-15. 소모품 원단위
+       14-15. 주요 원단위 현황 (소모품/도료)
       ------------------------------------------ */
-    consumables(container) {
+    mainUnitStatus(container) {
         const d = dataManager.getSectionData('consumables');
-
-        container.innerHTML = `
-            <div class="card" style="margin-bottom:20px">
-                <div class="card-header">
-                    <h3>소모품 원단위</h3>
-                    <div class="card-actions">
-                        <button class="btn-edit" onclick="openBulkEditModal('consumables')">
-                            <i class="fas fa-edit"></i> 전체 데이터 수정
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <div class="sub-tabs">
-                        ${LINES.map((line, i) => `
-                            <button class="sub-tab ${i === 0 ? 'active' : ''}" data-line="${line}">${line}</button>
-                        `).join('')}
-                    </div>
-                </div>
-                <div class="card-body">
-                    ${LINES.map((line, i) => `
-                        <div id="consumable-${line}" class="sub-content ${i === 0 ? 'active' : ''}">
-                            <div class="grid-2">
-                                <div class="card" style="background:transparent; border:none; box-shadow:none">
-                                    <div class="card-header">
-                                        <h3>소모품비 (원/톤) - ${line}</h3>
-                                        <div class="card-actions">
-                                            <span class="target-info">환산목표: ${formatNumber(d[line]?.costTarget)}만원</span>
-                                            <button class="btn-edit" onclick="openEditModal('consumables', '${line}')"><i class="fas fa-edit"></i></button>
-                                        </div>
-                                    </div>
-                                    <div class="card-body"><div class="chart-container"><canvas id="chart-cons-cost-${line.replace('#', '')}"></canvas></div></div>
-                                </div>
-                                <div class="card" style="background:transparent; border:none; box-shadow:none">
-                                    <div class="card-header">
-                                        <h3>원단위 (kg/톤) - ${line}</h3>
-                                        <div class="card-actions">
-                                            <span class="target-info">목표: ${formatNumber(d[line]?.unitTarget)}원</span>
-                                        </div>
-                                    </div>
-                                    <div class="card-body"><div class="chart-container"><canvas id="chart-cons-unit-${line.replace('#', '')}"></canvas></div></div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-`;
-
-        // 탭 전환
-        container.querySelectorAll('.sub-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                container.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
-                container.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
-                tab.classList.add('active');
-                const line = tab.dataset.line;
-                document.getElementById(`consumable-${line}`).classList.add('active');
-                renderConsumableCharts(line);
-            });
-        });
-
-        function renderConsumableCharts(line) {
-            const ld = d[line] || {};
-            setTimeout(() => {
-                createYearlyMonthlyBarChart(`chart-cons-cost-${line.replace('#', '')}`, {
-                    yearly: ld.costYearly || [],
-                    monthly: ld.costMonthly || [],
-                    target: ld.costTarget,
-                    higherIsBad: true
-                });
-                createYearlyMonthlyBarChart(`chart-cons-unit-${line.replace('#', '')}`, {
-                    yearly: ld.unitYearly || [],
-                    monthly: ld.unitMonthly || [],
-                    target: ld.unitTarget,
-                    higherIsBad: true
-                });
-            }, 50);
-        }
-        renderConsumableCharts(LINES[0]);
-    },
-
-    /*------------------------------------------
-       16. 공장KPI (폐기/재고)
-      ------------------------------------------ */
-    factoryKPI(container) {
-        const d = dataManager.getSectionData('factoryKPI');
+        const coldLines = ['CPL', 'CRM', 'CGL'];
+        const colorLines = ['1CCL', '2CCL', '3CCL'];
         const meta = dataManager.data.meta;
 
         container.innerHTML = `
-    <div class="card" style="margin-bottom:20px">
-        <div class="card-header">
-            <h3>공장KPI (폐기/재고)</h3>
-            <div class="card-actions">
-                <button class="btn-edit" onclick="openBulkEditModal('factoryKPI')">
-                    <i class="fas fa-edit"></i> 전체 데이터 수정
-                </button>
-            </div>
-        </div>
-    </div>
-    <div class="grid-2">
-                <div class="card">
-                    <div class="card-header"><h3>월평균 재고 및 폐기량</h3>
-                        <div class="card-actions"><button class="btn-edit" onclick="openEditModal('factoryKPI', 'disposal')"><i class="fas fa-edit"></i> 수정</button></div>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container" style="height:300px"><canvas id="chart-kpi-disposal"></canvas></div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header"><h3>월 폐기비용 및 원단위</h3></div>
-                    <div class="card-body">
-                        <div class="chart-container" style="height:300px"><canvas id="chart-kpi-cost"></canvas></div>
-                    </div>
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="fas fa-brush" style="margin-right:12px; color:#f59e0b"></i>주요 원단위 현황</h3>
                 </div>
             </div>
+            
+            <div class="grid-2">
+                <!-- 냉연 소모품 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="fas fa-brush" style="color:#3b82f6"></i> 냉연 소모품 현황 (원/톤)
+                        </h3>
+                        <div class="card-actions">
+                            <button class="btn-edit" onclick="openBulkEditModal('consumables')"><i class="fas fa-edit"></i> 수정</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="sub-tabs">
+                            ${coldLines.map((line, i) => `<button class="sub-tab ${i === 0 ? 'active' : ''}" data-type="cold" data-line="${line}">${line}</button>`).join('')}
+                        </div>
+                        <div class="sub-content-container" style="margin-top:15px">
+                            ${coldLines.map((line, i) => `
+                                <div id="mu-cold-${line}" class="sub-content type-cold ${i === 0 ? 'active' : ''}">
+                                    <div class="chart-container" style="height:320px"><canvas id="chart-mu-cold-${line}"></canvas></div>
+                                    <div class="comment-box" style="margin-top:10px">
+                                        <p style="font-size:13px">• ${meta.month}월 실적: ${formatNumber(d[line]?.costMonthly?.[meta.month - 1])}원/톤 &nbsp; (목표: ${formatNumber(d[line]?.costTarget)})</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
 
-            <!--폐기 상세-->
-            <div class="grid-3">
-                <div class="card"><div class="card-body" style="text-align:center">
-                    <span class="summary-label">폐기량 (kg)</span>
-                    <span class="summary-value" style="display:block;margin-top:8px">${formatNumber(d.disposal?.amount)}</span>
-               </div></div>
-                <div class="card"><div class="card-body" style="text-align:center">
-                    <span class="summary-label">색상 개수</span>
-                    <span class="summary-value" style="display:block;margin-top:8px">${formatNumber(d.disposal?.colors)}</span>
-               </div></div>
-                <div class="card"><div class="card-body" style="text-align:center">
-                    <span class="summary-label">원단위 (원/kg)</span>
-                    <span class="summary-value" style="display:block;margin-top:8px">${formatNumber(d.disposal?.unitCost)}</span>
-               </div></div>
-           </div>
+                <!-- 컬러 도료 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="fas fa-brush" style="color:#3b82f6"></i> 컬러 도료 현황 (kg/톤)
+                        </h3>
+                        <div class="card-actions">
+                            <button class="btn-edit" onclick="openBulkEditModal('consumables')"><i class="fas fa-edit"></i> 수정</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="sub-tabs">
+                            ${colorLines.map((line, i) => `<button class="sub-tab ${i === 0 ? 'active' : ''}" data-type="color" data-line="${line.replace('#', '')}">${line}</button>`).join('')}
+                        </div>
+                        <div class="sub-content-container" style="margin-top:15px">
+                            ${colorLines.map((line, i) => `
+                                <div id="mu-color-${line.replace('#', '')}" class="sub-content type-color ${i === 0 ? 'active' : ''}">
+                                    <div class="chart-container" style="height:320px"><canvas id="chart-mu-color-${line.replace('#', '')}"></canvas></div>
+                                    <div class="comment-box" style="margin-top:10px">
+                                        <p style="font-size:13px">• ${meta.month}월 실적: ${formatNumber(d[line]?.unitMonthly?.[meta.month - 1])}kg/톤 &nbsp; (목표: ${formatNumber(d[line]?.unitTarget)})</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
 
-            <!--도료 유형별-->
-            <div class="card">
-                <div class="card-header"><h3>도료 유형별 폐기량</h3></div>
-                <div class="card-body">
-                    <table class="data-table">
-                        <thead><tr>${Object.keys(d.disposal?.byType || {}).map(k => `<th>${k}</th>`).join('')}</tr></thead>
-                        <tbody><tr>${Object.values(d.disposal?.byType || {}).map(v => `<td>${formatNumber(v)}</td>`).join('')}</tr></tbody>
-                    </table>
-               </div>
-           </div>
-
-            <!--반제품 재고량-->
-    <div class="card">
-        <div class="card-header"><h3>반제품 재고량 (단위: 톤)</h3>
-            <div class="card-actions"><button class="btn-edit" onclick="openEditModal('factoryKPI', 'semiProduct')"><i class="fas fa-edit"></i> 수정</button></div>
-       </div>
-        <div class="card-body">
-            <div class="data-table-wrapper">
-                <table class="data-table">
-                    <thead><tr><th>구분</th><th>${meta.year - 1}년</th>${MONTHS.map(m => `<th>${m}</th>`).join('')}</tr></thead>
-                    <tbody>
-                        <tr><td><strong>목표</strong></td>${(d.semiProduct?.target || []).slice(0, 13).map(v => `<td>${formatNumber(v)}</td>`).join('')}</tr>
-                        <tr><td><strong>실적</strong></td>${(d.semiProduct?.actual || []).slice(0, 13).map(v => `<td>${formatNumber(v)}</td>`).join('')}</tr>
-                        <tr class="total-row"><td><strong>실적-목표</strong></td>${(d.semiProduct?.diff || []).slice(0, 13).map(v => `<td class="${getValueClass(v)}">${formatNumber(v)}</td>`).join('')}</tr>
-                    </tbody>
-                </table>
-           </div>
-       </div>
-   </div>
-`;
-
-        setTimeout(() => {
-            createYearlyMonthlyBarChart('chart-kpi-disposal', {
-                yearly: (d.disposal?.yearly || []).slice(0, 4),
-                monthly: d.disposal?.monthly || [],
-                target: null
-            });
-            if (d.disposalCost) {
-                createComboChart('chart-kpi-cost', {
-                    labels: YEAR_MONTH_LABELS,
-                    barData: [null, null, null, null, ...(d.disposalCost.costMonthly || [])],
-                    lineData: [null, null, null, null, ...(d.disposalCost.unitMonthly || [])],
-                    barLabel: '폐기비용(백만원)',
-                    lineLabel: '원단위(원)',
-                    unit: ''
+        const renderCharts = (type, line) => {
+            const ld = d[line.includes('CCL') ? line : line] || {};
+            const canvasId = `chart-mu-${type}-${line.replace('#', '')}`;
+            setTimeout(() => {
+                createYearlyMonthlyBarChart(canvasId, {
+                    yearly: type === 'cold' ? ld.costYearly : ld.unitYearly,
+                    monthly: type === 'cold' ? ld.costMonthly : ld.unitMonthly,
+                    target: type === 'cold' ? ld.costTarget : ld.unitTarget,
+                    unit: type === 'cold' ? '원/톤' : 'kg/톤',
+                    higherIsBad: true
                 });
-            }
-        }, 100);
+            }, 50);
+        };
+
+        // 초기 차트 렌더링
+        renderCharts('cold', 'CPL');
+        renderCharts('color', '1CCL');
+
+        // 탭 이벤트
+        container.querySelectorAll('.sub-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const type = tab.dataset.type;
+                const line = tab.dataset.line;
+                const parent = tab.closest('.card-body');
+                parent.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+                parent.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                parent.querySelector(`#mu-${type}-${line}`).classList.add('active');
+                renderCharts(type, line === '1CCL' ? '1CCL' : line === '2CCL' ? '2CCL' : line === '3CCL' ? '3CCL' : line);
+            });
+        });
     },
+
 
     /*------------------------------------------
        17. 고객불만 및 반품
@@ -1285,21 +1291,20 @@ const SectionRenderers = {
     complaints(container) {
         const d = dataManager.getSectionData('complaints');
         const meta = dataManager.data.meta;
+        const icon = 'fas fa-exclamation-circle';
 
         container.innerHTML = `
-    <div class="card" style="margin-bottom:20px">
-        <div class="card-header">
-            <h3>고객불만 및 반품</h3>
-            <div class="card-actions">
-                <button class="btn-edit" onclick="openBulkEditModal('complaints')">
-                    <i class="fas fa-edit"></i> 전체 데이터 수정
-                </button>
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>고객불만 및 반품</h3>
+                </div>
             </div>
-        </div>
-    </div>
     <div class="grid-2">
                 <div class="card">
-                    <div class="card-header"><h3>고객 불만 발생 건수</h3>
+                    <div class="card-header">
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 고객 불만 발생 건수
+                        </h3>
                         <div class="card-actions"><button class="btn-edit" onclick="openEditModal('complaints', 'customerComplaints')"><i class="fas fa-edit"></i> 수정</button></div>
                     </div>
                     <div class="card-body">
@@ -1315,7 +1320,10 @@ const SectionRenderers = {
                     </div>
                 </div>
                 <div class="card">
-                    <div class="card-header"><h3>제품 반품 현황</h3>
+                    <div class="card-header">
+                        <h3 style="display:flex; align-items:center; gap:8px">
+                            <i class="${icon}" style="color:#3b82f6"></i> 제품 반품 현황
+                        </h3>
                         <div class="card-actions"><button class="btn-edit" onclick="openEditModal('complaints', 'returns')"><i class="fas fa-edit"></i> 수정</button></div>
                     </div>
                     <div class="card-body">
@@ -1350,6 +1358,7 @@ const SectionRenderers = {
       ------------------------------------------ */
     breakdown(container) {
         const d = dataManager.getSectionData('breakdown');
+        const icon = 'fas fa-tools';
         const items = [
             { key: 'timeTotal', label: '고장시간 종합', target: d.timeTotal?.target },
             { key: 'countTotal', label: '고장건수 종합', target: d.countTotal?.target },
@@ -1360,26 +1369,25 @@ const SectionRenderers = {
         ];
 
         container.innerHTML = `
-    <div class="card" style="margin-bottom:20px">
-        <div class="card-header">
-            <h3>설비고장</h3>
-            <div class="card-actions">
-                <button class="btn-edit" onclick="openBulkEditModal('breakdown')"><i class="fas fa-edit"></i> 전체 데이터 수정</button>
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>설비고장</h3>
+                </div>
             </div>
-        </div>
-    </div>
     <div class="grid-2">
         ${items.map(item => {
             const id = `chart-bd-${item.key}`;
             return `<div class="card">
-                        <div class="card-header">
-                            <h3>${item.label}</h3>
-                            <span class="target-info">목표: ${item.target}</span>
-                       </div>
-                        <div class="card-body">
-                            <div class="chart-container chart-container-sm"><canvas id="${id}"></canvas></div>
-                       </div>
-                   </div>`;
+                <div class="card-header">
+                    <h3 style="display:flex; align-items:center; gap:8px">
+                        <i class="${icon}" style="color:#3b82f6"></i> ${item.label}
+                    </h3>
+                    <span class="target-info">목표: ${item.target}</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container chart-container-sm"><canvas id="${id}"></canvas></div>
+                </div>
+            </div>`;
         }).join('')}
    </div>
 `;
@@ -1398,30 +1406,30 @@ const SectionRenderers = {
     },
 
     /*------------------------------------------
-       19. 생산팀 상세실적
+       19. 성과개선 종합보고 (통합 개편)
       ------------------------------------------ */
-    productionTeam(container) {
-        this.renderProductionTeamReport(container);
-    },
-
-    renderProductionTeamReport(container) {
+    integratedReport(container) {
         const lines = ['CPL', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'];
         const meta = dataManager.data.meta;
         const tabs = [
-            { id: 'summary', label: '생산실적 종합' },
+            { id: 'summary', label: '주요지표현황 (종합)' },
+            { id: 'maintenance', label: '설비/유틸리티' },
             ...lines.map(line => ({ id: line, label: line }))
         ];
 
         container.innerHTML = `
             <div class="card" style="margin-bottom:20px">
                 <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
-                    <h3><i class="fas fa-industry" style="margin-right:12px; color:#ef4444"></i>생산팀 상세실적 (통합) - ${meta.year}년 ${meta.month}월</h3>
+                    <h3><i class="fas fa-file-contract" style="margin-right:12px; color:#ef4444"></i>성과개선 종합보고 - ${meta.year}년 ${meta.month}월</h3>
                     <div class="card-actions">
                         <button class="btn-edit" onclick="openBulkEditModal('productionColdReports')" style="margin-right:8px; background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); color:white">
                             <i class="fas fa-edit"></i> 냉연 데이터 수정
                         </button>
-                        <button class="btn-edit" onclick="openBulkEditModal('productionColorReports')" style="background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); color:white">
+                        <button class="btn-edit" onclick="openBulkEditModal('productionColorReports')" style="margin-right:8px; background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); color:white">
                             <i class="fas fa-edit"></i> 칼라 데이터 수정
+                        </button>
+                        <button class="btn-edit" onclick="openBulkEditModal('maintenanceTeam')" style="background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); color:white">
+                            <i class="fas fa-tools"></i> 설비/유틸리티 수정
                         </button>
                     </div>
                 </div>
@@ -1435,17 +1443,19 @@ const SectionRenderers = {
                         `).join('')}
                     </div>
                 </div>
-                <div class="card-body" id="team-report-content" style="padding: 24px; min-height: 500px;">
+                <div class="card-body" id="integrated-report-content" style="padding: 24px; min-height: 500px;">
                     <!-- 탭 컨텐츠 동적 렌더링 -->
                 </div>
             </div>
         `;
 
-        const contentArea = container.querySelector('#team-report-content');
+        const contentArea = container.querySelector('#integrated-report-content');
 
         const renderTab = (tabId) => {
             if (tabId === 'summary') {
                 this.renderTeamSummaryTab(contentArea, lines);
+            } else if (tabId === 'maintenance') {
+                this.renderMaintenanceTeamReport(contentArea);
             } else {
                 const sectionKey = ['CPL', 'CRM', 'CGL'].includes(tabId) ? 'productionColdReports' : 'productionColorReports';
                 this.renderLineDetailTab(contentArea, sectionKey, tabId);
@@ -1463,6 +1473,7 @@ const SectionRenderers = {
         });
     },
 
+
     renderProductionMetricTab(container, tabId, lines, tabs) {
         const coldData = dataManager.getSectionData('productionColdReports');
         const colorData = dataManager.getSectionData('productionColorReports');
@@ -1470,8 +1481,28 @@ const SectionRenderers = {
 
         const getLineData = (line) => {
             const isCold = ['CPL', 'CRM', 'CGL'].includes(line);
-            const source = isCold ? coldData : colorData;
-            return source[line] || { mfgCost: {}, metrics: {} };
+
+            // 전역 섹션에서 데이터 취합
+            const yData = dataManager.getSectionData('yield');
+            const oData = dataManager.getSectionData('operationRate');
+            const tData = dataManager.getSectionData('tonPower');
+            const pData = dataManager.getSectionData('power');
+            const lData = dataManager.getSectionData('lng');
+            const costData = dataManager.getSectionData('costReduction');
+
+            return {
+                mfgCost: {
+                    unitCost: costData.lineData?.unitCost?.[line] || {},
+                    improvement: costData.lineData?.improvement?.[line] || {}
+                },
+                metrics: {
+                    yield: yData[line] || {},
+                    operRate: oData[line] || {},
+                    tonPower: tData[line] || {},
+                    power: pData[line] || {},
+                    lng: lData[line] || {}
+                }
+            };
         };
 
         if (tabId === 'summary') {
@@ -1530,7 +1561,7 @@ const SectionRenderers = {
                     break;
                 case 'tonPower':
                     val = mt.tonPower?.monthly?.[curIdx];
-                    target = 13.5;
+                    target = mt.tonPower?.target || 13.5;
                     y24 = mt.tonPower?.yearly?.[3];
                     prev = curIdx > 0 ? mt.tonPower?.monthly?.[curIdx - 1] : '-';
                     break;
@@ -1687,7 +1718,7 @@ const SectionRenderers = {
             <div class="report-section">
                 <div class="report-header" style="display:flex; align-items:center; gap:10px; margin-bottom:20px; border-left:4px solid var(--seah-red); padding-left:12px;">
                     <i class="fas fa-chart-pie" style="color:var(--seah-red); font-size:18px;"></i>
-                    <h4 style="margin:0; font-size:18px;">전사 생산 실적 종합</h4>
+                    <h4 style="margin:0; font-size:18px;">전사 주요 지표 현황 (종합)</h4>
                 </div>
                 <div class="data-table-wrapper">
                     <table class="data-table">
@@ -1700,7 +1731,9 @@ const SectionRenderers = {
                                 <th>달성률 (%)</th>
                                 <th>A급 수율 (%)</th>
                                 <th>실가동률 (%)</th>
-                                <th>주요 특이사항</th>
+                                <th>톤파워 (T/H)</th>
+                                <th>전력 (kWh/T)</th>
+                                <th>LNG (Nm3/T)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1709,10 +1742,12 @@ const SectionRenderers = {
             const d = sectionKey === 'productionColdReports' ? coldData : colorData;
             const report = d[line] || {};
             const m = report.mfgCost || { prodTarget: { monthly: [] }, prodActual: { monthly: [] } };
-            const mt = report.metrics || { yield: { monthly: [] }, operRate: { monthly: [] } };
+            const mt = report.metrics || { yield: { monthly: [] }, operRate: { monthly: [] }, tonPower: { monthly: [] }, utility: { elec: { monthly: [] }, fuel: { monthly: [] } } };
+
             const target = m.prodTarget?.monthly?.[curIdx] || 0;
             const actual = m.prodActual?.monthly?.[curIdx] || 0;
             const rate = target > 0 ? Math.round(actual / target * 100) : '-';
+
             return `
                                     <tr>
                                         <td style="background:#f8fafc; font-weight:500; font-size:12px; color:#64748b">${['CPL', 'CRM', 'CGL'].includes(line) ? '냉연' : '칼라'}</td>
@@ -1722,7 +1757,9 @@ const SectionRenderers = {
                                         <td class="${rate >= 100 ? 'positive-val' : 'negative-val'}">${rate}%</td>
                                         <td>${mt.yield?.monthly?.[curIdx] || '-'}%</td>
                                         <td>${mt.operRate?.monthly?.[curIdx] || '-'}%</td>
-                                        <td style="text-align:left; font-size:12px; color:var(--text-secondary)">${report.highlights || '-'}</td>
+                                        <td>${mt.tonPower?.monthly?.[curIdx] || '-'}</td>
+                                        <td>${mt.utility?.elec?.monthly?.[curIdx] || '-'}</td>
+                                        <td>${mt.utility?.fuel?.monthly?.[curIdx] || '-'}</td>
                                     </tr>
                                 `;
         }).join('')}
@@ -1827,8 +1864,19 @@ const SectionRenderers = {
     },
 
     renderLineDetailTab(container, sectionKey, line) {
+        // 기존 sectionKey(productionColdReports/ColorReports) 외에 
+        // 전역 섹션들에서 데이터를 취합하여 일관성 유지
+        const yieldData = dataManager.getSectionData('yield')[line] || { yearly: [], monthly: [] };
+        const operData = dataManager.getSectionData('operationRate')[line] || { yearly: [], monthly: [] };
+        const tonData = dataManager.getSectionData('tonPower')[line] || { yearly: [], monthly: [] };
+        const powerData = dataManager.getSectionData('power')[line] || { yearly: [], monthly: [] };
+        const lngData = dataManager.getSectionData('lng')[line] || { yearly: [], monthly: [] };
+        const costData = dataManager.getSectionData('costReduction').lineData || { unitCost: {}, improvement: {} };
+
+        // 상세 리포트 자체 데이터 (하이라이트, 이슈 등)
         const d = dataManager.getSectionData(sectionKey);
-        const report = d[line] || { highlights: '', mfgCost: { fixed: { yearly: [], monthly: [] }, variable: { yearly: [], monthly: [] }, prodTarget: { yearly: [], monthly: [] }, prodActual: { yearly: [], monthly: [] }, unitCostTarget: 0 }, metrics: { yield: { yearly: [], monthly: [] }, operRate: { yearly: [], monthly: [] }, tonPower: { yearly: [], monthly: [] }, utility: { elec: { yearly: [], monthly: [] }, fuel: { yearly: [], monthly: [] } }, regReplace: { yearly: [], monthly: [] }, irregFail: { yearly: [], monthly: [] }, defects: {} } };
+        const report = d[line] || { highlights: '', issues: '', plans: '', pdfUrl: '' };
+
         const meta = dataManager.data.meta;
         const curIdx = meta.month - 1;
 
@@ -1860,9 +1908,9 @@ const SectionRenderers = {
                                     <tbody>
                                         <tr>
                                             <td><strong>당월 생산량</strong></td><td>톤</td>
-                                            <td>${formatNumber(report.mfgCost?.prodTarget?.monthly?.[curIdx])}</td>
-                                            <td>${formatNumber(report.mfgCost?.prodActual?.monthly?.[curIdx])}</td>
-                                            <td class="positive-val"><strong>${report.mfgCost?.prodTarget?.monthly?.[curIdx] ? Math.round(report.mfgCost.prodActual.monthly[curIdx] / report.mfgCost.prodTarget.monthly[curIdx] * 100) : '-'}%</strong></td>
+                                            <td>${formatNumber(dataManager.data.costReduction?.production?.plan)}</td>
+                                            <td>${formatNumber(dataManager.data.costReduction?.production?.actual)}</td>
+                                            <td class="positive-val"><strong>${dataManager.data.costReduction?.production?.plan ? Math.round(dataManager.data.costReduction.production.actual / dataManager.data.costReduction.production.plan * 100) : '-'}%</strong></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1883,7 +1931,12 @@ const SectionRenderers = {
                         <i class="fas fa-coins" style="color:#10b981"></i>
                         <h4 style="margin:0">제조원가 분석 (원/톤)</h4>
                     </div>
-                    ${this.renderMfgCostTable(line, report)}
+                    ${this.renderMfgCostTable(line, {
+            mfgCost: {
+                unitCost: costData.unitCost[line] || {},
+                improvement: costData.improvement[line] || {}
+            }
+        })}
                 </div>
 
                 <div class="grid-2 mt-20" style="gap:24px">
@@ -1946,27 +1999,27 @@ const SectionRenderers = {
                             <tbody>
                                 <tr>
                                     <td><strong>전력 원단위</strong></td><td>kW/T</td>
-                                    <td>${formatNumber(report.metrics?.utility?.elec?.yearly?.[0])}</td>
-                                    <td>${formatNumber(report.metrics?.utility?.elec?.goal)}</td>
-                                    <td>${formatNumber(report.metrics?.utility?.elec?.monthly?.[curIdx - 1])}</td>
-                                    <td>${formatNumber(report.metrics?.utility?.elec?.monthly?.[curIdx])}</td>
-                                    <td>${this.getDiffLabel(report.metrics?.utility?.elec?.monthly, curIdx)}</td>
+                                    <td>${formatNumber(powerData.yearly?.[0])}</td>
+                                    <td>${formatNumber(powerData.target)}</td>
+                                    <td>${formatNumber(powerData.monthly?.[curIdx - 1])}</td>
+                                    <td>${formatNumber(powerData.monthly?.[curIdx])}</td>
+                                    <td>${this.getDiffLabel(powerData.monthly, curIdx)}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>LNG 원단위</strong></td><td>Nm3/T</td>
-                                    <td>${formatNumber(report.metrics?.utility?.fuel?.yearly?.[0])}</td>
-                                    <td>${formatNumber(report.metrics?.utility?.fuel?.goal)}</td>
-                                    <td>${formatNumber(report.metrics?.utility?.fuel?.monthly?.[curIdx - 1])}</td>
-                                    <td>${formatNumber(report.metrics?.utility?.fuel?.monthly?.[curIdx])}</td>
-                                    <td>${this.getDiffLabel(report.metrics?.utility?.fuel?.monthly, curIdx)}</td>
+                                    <td>${formatNumber(lngData.yearly?.[0])}</td>
+                                    <td>${formatNumber(lngData.target)}</td>
+                                    <td>${formatNumber(lngData.monthly?.[curIdx - 1])}</td>
+                                    <td>${formatNumber(lngData.monthly?.[curIdx])}</td>
+                                    <td>${this.getDiffLabel(lngData.monthly, curIdx)}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>수율</strong></td><td>%</td>
-                                    <td>${formatNumber(report.metrics?.yield?.yearly?.[0])}</td>
-                                    <td>${formatNumber(report.metrics?.yield?.goal || 100)}</td>
-                                    <td>${formatNumber(report.metrics?.yield?.monthly?.[curIdx - 1])}</td>
-                                    <td>${formatNumber(report.metrics?.yield?.monthly?.[curIdx])}</td>
-                                    <td>${this.getDiffLabel(report.metrics?.yield?.monthly, curIdx, true)}</td>
+                                    <td>${formatNumber(yieldData.yearly?.[0])}</td>
+                                    <td>${formatNumber(yieldData.target)}</td>
+                                    <td>${formatNumber(yieldData.monthly?.[curIdx - 1])}</td>
+                                    <td>${formatNumber(yieldData.monthly?.[curIdx])}</td>
+                                    <td>${this.getDiffLabel(yieldData.monthly, curIdx, true)}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1977,43 +2030,50 @@ const SectionRenderers = {
 
         setTimeout(() => {
             const labels = [...YEARS.slice(0, 3), ...MONTHS];
-            const mc = report.mfgCost;
-            const mt = report.metrics;
+            // 통합된 mt 객체 생성
+            const mt = {
+                yield: yieldData,
+                operRate: operData,
+                tonPower: tonData,
+                utility: { elec: powerData, fuel: lngData },
+                regReplace: report.metrics?.regReplace || { monthly: [] },
+                irregFail: report.metrics?.irregFail || { monthly: [] },
+                defects: report.metrics?.defects || {}
+            };
 
             // 2. 생산실적 트렌드
             createYearlyMonthlyBarChart(`chart-prod-trend-${line}`, {
                 labels: labels,
-                datasets: [
-                    { label: '목표', type: 'line', data: [...(mc.prodTarget?.yearly || []), ...(mc.prodTarget?.monthly || [])], borderColor: '#f87171', backgroundColor: '#f87171', borderDash: [5, 5] },
-                    { label: '실적', type: 'bar', data: [...(mc.prodActual?.yearly || []), ...(mc.prodActual?.monthly || [])], backgroundColor: '#3b82f6', borderRadius: 4 }
-                ],
-                unit: '톤'
+                yearly: report.mfgCost?.prodTarget?.yearly || [],
+                monthly: report.mfgCost?.prodActual?.monthly || [],
+                target: report.mfgCost?.prodTarget?.monthly?.[curIdx],
+                higherIsBad: false
             });
 
             // 4. 수율
             createCommonTrendChart(`chart-yield-${line}`, {
                 labels: labels,
-                datasets: [{ label: '수율 (%)', type: 'line', data: [...(mt.yield?.yearly || []), ...(mt.yield?.monthly || [])], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true }]
+                datasets: [{ label: '수율 (%)', type: 'line', data: [...(yieldData.yearly || []), ...(yieldData.monthly || [])], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true }]
             });
 
             // 5. 가동률
             createCommonTrendChart(`chart-oper-${line}`, {
                 labels: labels,
-                datasets: [{ label: '가동률 (%)', type: 'line', data: [...(mt.operRate?.yearly || []), ...(mt.operRate?.monthly || [])], borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true }]
+                datasets: [{ label: '가동률 (%)', type: 'line', data: [...(operData.yearly || []), ...(operData.monthly || [])], borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true }]
             });
 
             // 6. T/H
             createCommonTrendChart(`chart-tonpower-${line}`, {
                 labels: labels,
-                datasets: [{ label: 'T/H', type: 'bar', data: [...(mt.tonPower?.yearly || []), ...(mt.tonPower?.monthly || [])], backgroundColor: '#8b5cf6' }]
+                datasets: [{ label: 'T/H', type: 'bar', data: [...(tonData.yearly || []), ...(tonData.monthly || [])], backgroundColor: '#8b5cf6' }]
             });
 
             // 7. 유틸리티
             createCommonTrendChart(`chart-utility-${line}`, {
                 labels: labels,
                 datasets: [
-                    { label: '전력 (kW/T)', type: 'line', data: [...(mt.utility?.elec?.yearly || []), ...(mt.utility?.elec?.monthly || [])], borderColor: '#3b82f6' },
-                    { label: 'LNG (Nm3/T)', type: 'line', data: [...(mt.utility?.fuel?.yearly || []), ...(mt.utility?.fuel?.monthly || [])], borderColor: '#f87171' }
+                    { label: '전력 (kW/T)', type: 'line', data: [...(powerData.yearly || []), ...(powerData.monthly || [])], borderColor: '#3b82f6' },
+                    { label: 'LNG (Nm3/T)', type: 'line', data: [...(lngData.yearly || []), ...(lngData.monthly || [])], borderColor: '#f87171' }
                 ]
             });
 
@@ -2098,13 +2158,8 @@ const SectionRenderers = {
 
         container.innerHTML = `
             <div class="card" style="margin-bottom:20px">
-                <div class="card-header">
-                    <h3>설비팀 상세실적 - ${meta.year}년 ${meta.month}월</h3>
-                    <div class="card-actions">
-                        <button class="btn-edit" onclick="openBulkEditModal('maintenanceTeam')">
-                            <i class="fas fa-edit"></i> 데이터 수정
-                        </button>
-                    </div>
+                <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+                    <h3 style="margin:0"><i class="fas fa-tools" style="margin-right:12px; color:#f59e0b"></i>설비/유틸리티 상세 실적</h3>
                 </div>
             </div>
 

@@ -57,20 +57,7 @@ class DataManager {
 
     async init() {
         // ★ 구조 변경 후 오래된 로컬 캐시 정리 (한 번만)
-        try {
-            if (!localStorage.getItem('seah_cm_cache_cleared_v3')) { // 버전을 v3로 올려서 강제 초기화 유도
-                const keysToRemove = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && (key.startsWith('seah_cm_report_data') || key.startsWith('seah_cm_last_meta'))) {
-                        keysToRemove.push(key);
-                    }
-                }
-                keysToRemove.forEach(k => localStorage.removeItem(k));
-                localStorage.setItem('seah_cm_cache_cleared_v3', 'true');
-                console.log('✅ 시스템 구조 변경으로 인한 로컬 캐시 전체 초기화 완료');
-            }
-        } catch (e) { }
+        // 캐시 초기화 로직 제거 (데이터 보존 우선)
 
         // 로컬에서 마지막 선택한 월 정보 복원
         try {
@@ -137,6 +124,7 @@ class DataManager {
                     if (parsed.meta && parsed.meta.year === year && parsed.meta.month === month) {
                         const base = (year === 2026 && month === 1) ? this.getDefaultData() : this.getEmptyTemplate();
                         this.data = deepMerge(base, parsed);
+                        this.migrationOldData(); // 레거시 데이터 마이그레이션 실행
                         this.docExists = true;
                     }
                 }
@@ -232,6 +220,32 @@ class DataManager {
         }
     }
 
+    /**
+     * 레거시 integratedReport 데이터를 새로운 productionColdReports/ColorReports로 마이그레이션
+     */
+    migrationOldData() {
+        if (this.data.integratedReport) {
+            const legacy = this.data.integratedReport;
+            const coldLines = ['CPL', 'CRM', 'CGL'];
+            const colorLines = ['1CCL', '2CCL', '3CCL'];
+
+            coldLines.forEach(line => {
+                if (legacy[line] && (!this.data.productionColdReports[line] || !this.data.productionColdReports[line].highlights)) {
+                    this.data.productionColdReports[line] = deepMerge(this.data.productionColdReports[line] || {}, legacy[line]);
+                }
+            });
+
+            colorLines.forEach(line => {
+                if (legacy[line] && (!this.data.productionColorReports[line] || !this.data.productionColorReports[line].highlights)) {
+                    this.data.productionColorReports[line] = deepMerge(this.data.productionColorReports[line] || {}, legacy[line]);
+                }
+            });
+
+            // 마이그레이션 후 원본은 유지하되 새 구조에 반영됨을 확인
+            console.log('✅ 레거시 통합보고서 데이터가 새로운 팀별 보고서 구조로 마이그레이션되었습니다.');
+        }
+    }
+
     async save() {
         this.saveLocal();
         return await this.saveFirebase();
@@ -320,7 +334,14 @@ class DataManager {
                 '톤파워': 'tonPower',
                 '스크랩': 'scrap',
                 '설비고장': 'breakdown',
-                '설비효율': 'equipEfficiency'
+                '설비효율': 'equipEfficiency',
+                '생산량': 'productionStatus',
+                '제조원가': 'mfgCostStatus',
+                '원단위': 'mfgCostStatus',
+                '주요 원단위': 'consumables',
+                '소모품': 'consumables',
+                '도료': 'consumables',
+                '페인트': 'consumables'
             };
 
             let targetKey = null;
@@ -362,7 +383,43 @@ class DataManager {
                 });
             }
 
-            // 3. 주요과제 (keyTasks)
+            // 3. 생산팀 상세 보고 (productionColdReports, productionColorReports)
+            if (sheetName.includes('생산') || sheetName.includes('Report') || sheetName.includes('상료')) {
+                rows.forEach(row => {
+                    const line = (row['라인'] || row['Line'] || '').toString().trim();
+                    if (!line) return;
+
+                    const sectionKey = ['CPL', 'CRM', 'CGL'].includes(line) ? 'productionColdReports' : 'productionColorReports';
+                    if (this.data[sectionKey] && this.data[sectionKey][line]) {
+                        const report = this.data[sectionKey][line];
+                        const m = report.mfgCost;
+                        const mt = report.metrics;
+
+                        let val = undefined;
+                        for (const label of actualValueLabels) {
+                            if (row[label] !== undefined) {
+                                val = parseFloat(row[label].toString().replace(/,/g, ''));
+                                if (!isNaN(val)) break;
+                            }
+                        }
+
+                        if (val !== undefined && !isNaN(val)) {
+                            const item = (row['항목'] || row['구분'] || '').toString().trim();
+                            if (item.includes('생산')) m.prodActual.monthly[curMonthIdx] = val;
+                            else if (item.includes('목표')) m.prodTarget.monthly[curMonthIdx] = val;
+                            else if (item.includes('수율')) mt.yield.monthly[curMonthIdx] = val;
+                            else if (item.includes('가동률')) mt.operRate.monthly[curMonthIdx] = val;
+                            else if (item.includes('전력')) mt.utility.elec.monthly[curMonthIdx] = val;
+                            else if (item.includes('연료') || item.includes('LNG')) mt.utility.fuel.monthly[curMonthIdx] = val;
+                            else if (item.includes('톤파워')) mt.tonPower.monthly[curMonthIdx] = val;
+
+                            updatedCount++;
+                        }
+                    }
+                });
+            }
+
+            // 4. 주요과제 (keyTasks)
             if (sheetName.includes('주요과제') || sheetName === 'keyTasks') {
                 rows.forEach(row => {
                     const team = (row['팀'] || row['Team'] || '').toString().trim();
@@ -478,6 +535,24 @@ class DataManager {
                 steel: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null), analysis: '' },
                 al: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null), analysis: '' }
             },
+            productionStatus: {
+                composite: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CPL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CRM: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CGL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '1CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '2CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '3CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            },
+            mfgCostStatus: {
+                composite: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CPL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CRM: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CGL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '1CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '2CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '3CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+            },
             yield: {
                 composite: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
                 CPL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
@@ -487,7 +562,13 @@ class DataManager {
                 '3CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
             },
             tonPower: {
-                composite: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
+                composite: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CPL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CRM: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                CGL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '1CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '2CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
+                '3CCL': { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) }
             },
             operationRate: {
                 CPL: { target: 0, yearly: [null, null, null, null], monthly: new Array(12).fill(null) },
@@ -711,6 +792,24 @@ class DataManager {
                 productionMonthly: { y24: 96204, y25: 94066, m1_prev: 91475, m1_goal: 97735, m1: 93828 }
             },
 
+            productionStatus: {
+                composite: { target: 95000, yearly: [96204, 94066, 91475, 93828], monthly: [93828, null, null, null, null, null, null, null, null, null, null, null] },
+                CPL: { target: 25000, yearly: [24744, 25200, 25580, 25491], monthly: [25491, null, null, null, null, null, null, null, null, null, null, null] },
+                CRM: { target: 23500, yearly: [24023, 23800, 24640, 23173], monthly: [23173, null, null, null, null, null, null, null, null, null, null, null] },
+                CGL: { target: 24500, yearly: [24188, 24500, 24840, 24383], monthly: [24383, null, null, null, null, null, null, null, null, null, null, null] },
+                '1CCL': { target: 12000, yearly: [12789, 12500, 12700, 10845], monthly: [10845, null, null, null, null, null, null, null, null, null, null, null] },
+                '2CCL': { target: 2000, yearly: [1947, 1800, 1410, 2534], monthly: [2534, null, null, null, null, null, null, null, null, null, null, null] },
+                '3CCL': { target: 6500, yearly: [5861, 6200, 6520, 7401], monthly: [7401, null, null, null, null, null, null, null, null, null, null, null] }
+            },
+            mfgCostStatus: {
+                composite: { target: 120000, yearly: [125000, 122000, 120000, 118000], monthly: [118000, null, null, null, null, null, null, null, null, null, null, null] },
+                CPL: { target: 21096, yearly: [23110, 22326, 21856, 23773], monthly: [23773, null, null, null, null, null, null, null, null, null, null, null] },
+                CRM: { target: 33617, yearly: [40472, 35577, 36841, 39988], monthly: [39988, null, null, null, null, null, null, null, null, null, null, null] },
+                CGL: { target: 82142, yearly: [90477, 86931, 93963, 80879], monthly: [80879, null, null, null, null, null, null, null, null, null, null, null] },
+                '1CCL': { target: 89678, yearly: [101258, 94907, 103179, 99574], monthly: [99574, null, null, null, null, null, null, null, null, null, null, null] },
+                '2CCL': { target: 439314, yearly: [295494, 464929, 398758, 308048], monthly: [308048, null, null, null, null, null, null, null, null, null, null, null] },
+                '3CCL': { target: 180554, yearly: [202176, 191082, 253821, 156260], monthly: [156260, null, null, null, null, null, null, null, null, null, null, null] }
+            },
             // 3. 라인별 실적
             linePerformance: {
                 costReduction: {
@@ -943,7 +1042,16 @@ class DataManager {
                 '2CCL': { target: 99.80, yearly: [99.78, 99.75, 99.82, 99.85], monthly: [99.85, null, null, null, null, null, null, null, null, null, null, null] },
                 '3CCL': { target: 99.85, yearly: [99.80, 99.79, 99.84, 99.90], monthly: [99.90, null, null, null, null, null, null, null, null, null, null, null] }
             },
-
+            // 주요지표 - 톤파워
+            tonPower: {
+                composite: { target: 12.5, yearly: [11.8, 12.1, 12.3, 12.5], monthly: [12.5, null, null, null, null, null, null, null, null, null, null, null] },
+                CPL: { target: 13.5, yearly: [12.5, 13.2, 13.5, 13.8], monthly: [13.8, null, null, null, null, null, null, null, null, null, null, null] },
+                CRM: { target: 11.5, yearly: [10.5, 11.2, 11.5, 11.8], monthly: [11.8, null, null, null, null, null, null, null, null, null, null, null] },
+                CGL: { target: 16.5, yearly: [15.5, 16.2, 16.5, 16.8], monthly: [16.8, null, null, null, null, null, null, null, null, null, null, null] },
+                '1CCL': { target: 9.5, yearly: [8.5, 9.2, 9.5, 9.8], monthly: [9.8, null, null, null, null, null, null, null, null, null, null, null] },
+                '2CCL': { target: 10.5, yearly: [9.5, 10.2, 10.5, 10.8], monthly: [10.8, null, null, null, null, null, null, null, null, null, null, null] },
+                '3CCL': { target: 9.5, yearly: [8.5, 9.2, 9.5, 9.8], monthly: [9.8, null, null, null, null, null, null, null, null, null, null, null] }
+            },
             // 주요지표 - 실가동률
             operationRate: {
                 composite: { target: 90.87, yearly: [88.03, 86.48, 86.47, 88.50], monthly: [88.50, null, null, null, null, null, null, null, null, null, null, null] },

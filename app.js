@@ -19,20 +19,16 @@
         keyTasks: '주요과제 진행사항',
         equipEfficiency: '설비종합효율',
         scrap: '스크랩 현황',
-        yield: 'A급 수율',
-        tonPower: '톤파워',
-        operationRate: '실가동률',
-        lng: 'LNG원단위',
-        power: '전력원단위',
-        steam: '스팀',
-        consumables: '소모품 원단위',
-        factoryKPI: '공장KPI (폐기/재고)',
+        productionStatus: '생산량 현황',
+        mfgCostStatus: '제조원가 현황',
+        yield: '수율 현황',
+        tonPower: '톤파워 현황',
+        operationRate: '가동률 현황',
+        mainUnitStatus: '주요 원단위 현황',
+        utilityStatus: '유틸리티 현황 (LNG/전력)',
         complaints: '고객불만 및 반품',
-        breakdown: '설비고장',
-        productionTeam: '생산팀 상세실적',
-        maintenanceTeam: '설비팀 상세실적',
-        productionColdReports: '생산팀(냉연) 상세 보고',
-        productionColorReports: '생산팀(칼라) 상세 보고'
+        breakdown: '설비 고장 현황',
+        maintenanceTeam: '설비 상세실적'
     };
 
     // ==========================================
@@ -159,7 +155,34 @@
         };
 
         // 섹션별 분기
-        if (sectionId === 'costReduction') {
+        if (sectionId === 'utilityStatus') {
+            const lData = dataManager.getSectionData('lng')[subKey] || {};
+            const pData = dataManager.getSectionData('power')[subKey] || {};
+            formHtml = `
+                <div class="form-section-title">${subKey} - LNG 원단위</div>
+                <div class="form-grid">
+                    ${YEARS.map((y, i) => `
+                        <div class="form-group"><label>${y}</label><input type="number" step="any" name="lng_yearly_${i}" value="${lData.yearly?.[i] ?? ''}"></div>
+                    `).join('')}
+                </div>
+                <div class="form-grid">
+                    ${MONTHS.map((m, i) => `
+                        <div class="form-group"><label>${m}</label><input type="number" step="any" name="lng_monthly_${i}" value="${lData.monthly?.[i] ?? ''}"></div>
+                    `).join('')}
+                </div>
+                <div class="form-section-title">${subKey} - 전력 원단위</div>
+                <div class="form-grid">
+                    ${YEARS.map((y, i) => `
+                        <div class="form-group"><label>${y}</label><input type="number" step="any" name="power_yearly_${i}" value="${pData.yearly?.[i] ?? ''}"></div>
+                    `).join('')}
+                </div>
+                <div class="form-grid">
+                    ${MONTHS.map((m, i) => `
+                        <div class="form-group"><label>${m}</label><input type="number" step="any" name="power_monthly_${i}" value="${pData.monthly?.[i] ?? ''}"></div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (sectionId === 'costReduction') {
             if (subKey === 'summary') {
                 formHtml = `
                     <div class="form-grid">
@@ -257,71 +280,6 @@
             } else {
                 formHtml = '<p>과제 상세 편집은 추후 지원 예정입니다.</p>';
             }
-        } else if (sectionId === 'productionColdReports' || sectionId === 'productionColorReports') {
-            var report = data[subKey] || { highlights: '', issues: '', plans: '', mfgCost: { fixed: { monthly: [] }, variable: { monthly: [] }, prodTarget: { monthly: [] }, prodActual: { monthly: [] }, unitCostTarget: 0 }, metrics: { electricity: { monthly: [] }, fuel: { monthly: [] }, repair: { monthly: [] }, consumables: { monthly: [] }, yield: { monthly: [] }, defects: {} } };
-            var m = report.mfgCost || { fixed: { monthly: [] }, variable: { monthly: [] }, prodTarget: { monthly: [] }, prodActual: { monthly: [] }, unitCostTarget: 0 };
-            var mt = report.metrics || { electricity: { monthly: [] }, fuel: { monthly: [] }, repair: { monthly: [] }, consumables: { monthly: [] }, yield: { monthly: [] }, defects: {} };
-            var curMonthIdx = dataManager.data.meta.month - 1;
-
-            var defectFields = '';
-            var defects = mt.defects || {};
-            if (sectionId === 'productionColdReports') {
-                defectFields = ' \
-                    <div class="form-group"><label>Pinhole (건)</label><input type="number" name="mt_defect_pinhole" value="' + (defects.pinhole ? defects.pinhole.monthly[curMonthIdx] : '') + '"></div> \
-                    <div class="form-group"><label>Edge (건)</label><input type="number" name="mt_defect_edge" value="' + (defects.edge ? defects.edge.monthly[curMonthIdx] : '') + '"></div> \
-                    <div class="form-group"><label>Scratch (건)</label><input type="number" name="mt_defect_scratch" value="' + (defects.scratch ? defects.scratch.monthly[curMonthIdx] : '') + '"></div>';
-            } else {
-                defectFields = ' \
-                    <div class="form-group"><label>Overcoat (건)</label><input type="number" name="mt_defect_overcoat" value="' + (defects.overcoat ? defects.overcoat.monthly[curMonthIdx] : '') + '"></div> \
-                    <div class="form-group"><label>Scratch (건)</label><input type="number" name="mt_defect_scratch" value="' + (defects.scratch ? defects.scratch.monthly[curMonthIdx] : '') + '"></div> \
-                    <div class="form-group"><label>Blister (건)</label><input type="number" name="mt_defect_blister" value="' + (defects.blister ? defects.blister.monthly[curMonthIdx] : '') + '"></div>';
-            }
-
-            formHtml = ' \
-                <div class="form-group" style="margin-bottom:16px"> \
-                    <label>당월 주요 실적</label> \
-                    <textarea name="highlights" rows="3" style="width:100%">' + (report.highlights || '') + '</textarea> \
-                </div> \
-                \
-                <div class="form-section-title">1. 제조원가 분석 (' + dataManager.data.meta.month + '월)</div> \
-                <div class="form-grid"> \
-                    <div class="form-group"><label>생산 실적 (톤)</label><input type="number" name="mc_prodActual" value="' + (m.prodActual.monthly[curMonthIdx] || '') + '"></div> \
-                    <div class="form-group"><label>제조경비 목표 (원/TON)</label><input type="number" name="mc_unitCostTarget" value="' + (m.unitCostTarget || '') + '"></div> \
-                    <div class="form-group"><label>고정비 (원/TON)</label><input type="number" name="mc_fixed" value="' + (m.fixed.monthly[curMonthIdx] || '') + '"></div> \
-                    <div class="form-group"><label>변동비 (원/TON)</label><input type="number" name="mc_variable" value="' + (m.variable.monthly[curMonthIdx] || '') + '"></div> \
-                </div> \
-                \
-                <div class="form-section-title">2. 생산성 및 효율 실적 (' + dataManager.data.meta.month + '월)</div> \
-                <div class="form-grid"> \
-                    <div class="form-group"><label>수율 (%)</label><input type="number" step="any" name="mt_yield" value="' + (mt.yield.monthly[curMonthIdx] || '') + '"></div> \
-                    <div class="form-group"><label>가동률 (%)</label><input type="number" step="any" name="mt_operRate" value="' + (mt.operRate ? mt.operRate.monthly[curMonthIdx] : '') + '"></div> \
-                    <div class="form-group"><label>정기수선 (H)</label><input type="number" step="any" name="mt_regReplace" value="' + (mt.regReplace ? mt.regReplace.monthly[curMonthIdx] : '') + '"></div> \
-                    <div class="form-group"><label>고장/비관련 (H)</label><input type="number" step="any" name="mt_irregFail" value="' + (mt.irregFail ? mt.irregFail.monthly[curMonthIdx] : '') + '"></div> \
-                    <div class="form-group"><label>톤파워 (T/HR)</label><input type="number" step="any" name="mt_tonPower" value="' + (mt.tonPower ? mt.tonPower.monthly[curMonthIdx] : '') + '"></div> \
-                </div> \
-                \
-                <div class="form-section-title">3. 유틸리티 원단위 실적 (' + dataManager.data.meta.month + '월)</div> \
-                <div class="form-grid"> \
-                    <div class="form-group"><label>전력 (kWh/T)</label><input type="number" step="any" name="mt_electricity" value="' + (mt.electricity.monthly[curMonthIdx] || '') + '"></div> \
-                    <div class="form-group"><label>연료 (Nm3/T)</label><input type="number" step="any" name="mt_fuel" value="' + (mt.fuel.monthly[curMonthIdx] || '') + '"></div> \
-                </div> \
-                \
-                <div class="form-section-title">4. 품질 결함 실적 (건)</div> \
-                <div class="form-grid"> \
-                    ' + defectFields + ' \
-                </div> \
-                \
-                <div class="form-group" style="margin-top:16px"> \
-                    <label>추가 자료 (PDF)</label> \
-                    <div style="display:flex; align-items:center; gap:10px; margin-top:8px"> \
-                        <input type="hidden" name="pdfUrl" value="' + (report.pdfUrl || '') + '"> \
-                        <label class="btn-pdf-upload" style="cursor:pointer; padding:8px 16px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; display:inline-flex; align-items:center; gap:6px"> \
-                            <i class="fas fa-upload"></i> PDF 업로드 \
-                            <input type="file" accept=".pdf" style="display:none" onchange="handleTeamPdfUpload(this, \'' + sectionId + '\', \'' + subKey + '\')"> \
-                        </label> \
-                        <span id="pdf-status" style="font-size:12px; color:var(--text-secondary)">' + (report.pdfUrl ? '첨부됨' : '파일 없음') + '</span> \
-                    </div> \
-                </div>';
         } else {
             // 공통 패턴: 연도별+월별 데이터
             const keyData = data[subKey] || data;
@@ -340,8 +298,29 @@
     // 대량 편집 모달
     window.openBulkEditModal = function (sectionId) {
         const data = dataManager.getSectionData(sectionId);
+        const keys = Object.keys(data);
         let formHtml = '';
-        if (sectionId === 'maintenanceTeam') {
+        if (sectionId === 'utilityStatus') {
+            const lData = dataManager.getSectionData('lng');
+            const pData = dataManager.getSectionData('power');
+            const lines = ['CPL', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'];
+
+            lines.forEach(line => {
+                const ld = lData[line] || {};
+                const pd = pData[line] || {};
+                formHtml += `<div class="form-section-head" style="background:#f1f5f9; padding:10px 15px; font-weight:700; margin-top:30px; border-radius:6px; border-left:4px solid #3b82f6;">${line} 유틸리티 상세</div>`;
+
+                formHtml += `<div class="form-section-title" style="margin-top:10px">LNG (Nm3/톤)</div><div class="form-grid">`;
+                YEARS.forEach((y, i) => formHtml += `<div class="form-group"><label>${y}</label><input type="number" step="any" name="bulk_lng_${line}_y${i}" value="${ld.yearly?.[i] ?? ''}"></div>`);
+                MONTHS.forEach((m, i) => formHtml += `<div class="form-group"><label>${m}</label><input type="number" step="any" name="bulk_lng_${line}_m${i}" value="${ld.monthly?.[i] ?? ''}"></div>`);
+                formHtml += `</div>`;
+
+                formHtml += `<div class="form-section-title" style="margin-top:10px">전력 (kW/톤)</div><div class="form-grid">`;
+                YEARS.forEach((y, i) => formHtml += `<div class="form-group"><label>${y}</label><input type="number" step="any" name="bulk_power_${line}_y${i}" value="${pd.yearly?.[i] ?? ''}"></div>`);
+                MONTHS.forEach((m, i) => formHtml += `<div class="form-group"><label>${m}</label><input type="number" step="any" name="bulk_power_${line}_m${i}" value="${pd.monthly?.[i] ?? ''}"></div>`);
+                formHtml += `</div>`;
+            });
+        } else if (sectionId === 'maintenanceTeam') {
             const categories = [
                 { id: 'energyReduction', label: '1. 에너지 저감 실적' },
                 { id: 'downtime', label: '2. 설비 비가동 현황' },
@@ -432,6 +411,31 @@
         const data = dataManager.getSectionData(sectionId);
 
         // 섹션별 데이터 매핑
+        if (sectionId === 'utilityStatus') {
+            const lAllData = dataManager.getSectionData('lng');
+            const pAllData = dataManager.getSectionData('power');
+            const lData = lAllData[subKey] || { yearly: new Array(4).fill(null), monthly: new Array(12).fill(null) };
+            const pData = pAllData[subKey] || { yearly: new Array(4).fill(null), monthly: new Array(12).fill(null) };
+
+            for (let i = 0; i < 4; i++) {
+                if (values[`lng_yearly_${i}`] !== undefined) lData.yearly[i] = values[`lng_yearly_${i}`];
+                if (values[`power_yearly_${i}`] !== undefined) pData.yearly[i] = values[`power_yearly_${i}`];
+            }
+            for (let i = 0; i < 12; i++) {
+                if (values[`lng_monthly_${i}`] !== undefined) lData.monthly[i] = values[`lng_monthly_${i}`];
+                if (values[`power_monthly_${i}`] !== undefined) pData.monthly[i] = values[`power_monthly_${i}`];
+            }
+            lAllData[subKey] = lData;
+            pAllData[subKey] = pData;
+
+            await dataManager.updateSectionData('lng', lAllData);
+            await dataManager.updateSectionData('power', pAllData);
+            closeModal();
+            navigateTo(currentSection);
+            showToast('유틸리티 데이터가 실시간으로 저장되었습니다.');
+            return;
+        }
+
         if (sectionId === 'costReduction') {
             if (subKey === 'summary') {
                 data.target = values.target;
@@ -487,53 +491,6 @@
                 data.teamSummary[team].cumulative = values['kt_' + team + '_cumulative'];
                 data.teamSummary[team].rate = values['kt_' + team + '_rate'];
             });
-        } else if (sectionId === 'productionColdReports' || sectionId === 'productionColorReports') {
-            if (!data[subKey]) data[subKey] = { highlights: '', issues: '', plans: '', pdfUrl: '', mfgCost: { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 }, metrics: { electricity: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, repair: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, consumables: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, defects: {} } };
-            var report = data[subKey];
-            var curMonthIdx = dataManager.data.meta.month - 1;
-
-            report.highlights = values.highlights;
-            report.pdfUrl = values.pdfUrl;
-
-            // 1. Mfg Cost
-            if (!report.mfgCost) report.mfgCost = { fixed: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, variable: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodTarget: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, prodActual: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, unitCostTarget: 0 };
-            var m = report.mfgCost;
-            if (values.mc_prodActual !== undefined) m.prodActual.monthly[curMonthIdx] = values.mc_prodActual;
-            if (values.mc_fixed !== undefined) m.fixed.monthly[curMonthIdx] = values.mc_fixed;
-            if (values.mc_variable !== undefined) m.variable.monthly[curMonthIdx] = values.mc_variable;
-            if (values.mc_unitCostTarget !== undefined) m.unitCostTarget = values.mc_unitCostTarget;
-
-            // 2. Metrics (Utility, Yield, OperRate, etc.)
-            if (!report.metrics) report.metrics = { electricity: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, fuel: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, repair: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, consumables: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, yield: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, operRate: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, regReplace: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, irregFail: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, tonPower: { yearly: [null, null, null], monthly: new Array(12).fill(null) }, defects: {} };
-            var mt = report.metrics;
-            if (values.mt_electricity !== undefined) mt.electricity.monthly[curMonthIdx] = values.mt_electricity;
-            if (values.mt_fuel !== undefined) mt.fuel.monthly[curMonthIdx] = values.mt_fuel;
-            if (values.mt_yield !== undefined) mt.yield.monthly[curMonthIdx] = values.mt_yield;
-            if (values.mt_operRate !== undefined) {
-                if (!mt.operRate) mt.operRate = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
-                mt.operRate.monthly[curMonthIdx] = values.mt_operRate;
-            }
-            if (values.mt_regReplace !== undefined) {
-                if (!mt.regReplace) mt.regReplace = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
-                mt.regReplace.monthly[curMonthIdx] = values.mt_regReplace;
-            }
-            if (values.mt_irregFail !== undefined) {
-                if (!mt.irregFail) mt.irregFail = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
-                mt.irregFail.monthly[curMonthIdx] = values.mt_irregFail;
-            }
-            if (values.mt_tonPower !== undefined) {
-                if (!mt.tonPower) mt.tonPower = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
-                mt.tonPower.monthly[curMonthIdx] = values.mt_tonPower;
-            }
-
-            // 3. Defects
-            if (!mt.defects) mt.defects = {};
-            var defectKeys = sectionId === 'productionColdReports' ? ['pinhole', 'edge', 'scratch'] : ['overcoat', 'scratch', 'blister'];
-            defectKeys.forEach(function (dk) {
-                if (!mt.defects[dk]) mt.defects[dk] = { yearly: [null, null, null], monthly: new Array(12).fill(null) };
-                var val = values['mt_defect_' + dk];
-                if (val !== undefined) mt.defects[dk].monthly[curMonthIdx] = val;
-            });
         } else {
             // 공통 패턴: 연도별+월별 데이터
             if (!data[subKey]) data[subKey] = {};
@@ -559,6 +516,7 @@
     }
 
     async function saveBulkModalData(sectionId) {
+        const data = dataManager.getSectionData(sectionId);
         const form = modalBody;
         const inputs = form.querySelectorAll('input');
         const values = {};
@@ -567,6 +525,39 @@
             if (!name) return;
             values[name] = inp.value.trim() === '' ? null : parseFloat(inp.value);
         });
+
+        if (sectionId === 'utilityStatus') {
+            const lAllData = dataManager.getSectionData('lng');
+            const pAllData = dataManager.getSectionData('power');
+            const lines = ['CPL', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'];
+
+            lines.forEach(line => {
+                const ld = lAllData[line] || { yearly: new Array(4).fill(null), monthly: new Array(12).fill(null) };
+                const pd = pAllData[line] || { yearly: new Array(4).fill(null), monthly: new Array(12).fill(null) };
+
+                for (let i = 0; i < 4; i++) {
+                    const lvy = values[`bulk_lng_${line}_y${i}`];
+                    const pvy = values[`bulk_power_${line}_y${i}`];
+                    if (lvy !== undefined) ld.yearly[i] = lvy;
+                    if (pvy !== undefined) pd.yearly[i] = pvy;
+                }
+                for (let i = 0; i < 12; i++) {
+                    const lvm = values[`bulk_lng_${line}_m${i}`];
+                    const pvm = values[`bulk_power_${line}_m${i}`];
+                    if (lvm !== undefined) ld.monthly[i] = lvm;
+                    if (pvm !== undefined) pd.monthly[i] = pvm;
+                }
+                lAllData[line] = ld;
+                pAllData[line] = pd;
+            });
+
+            await dataManager.updateSectionData('lng', lAllData);
+            await dataManager.updateSectionData('power', pAllData);
+            closeModal();
+            navigateTo(currentSection);
+            showToast('전체 유틸리티 데이터가 성공적으로 저장되었습니다.');
+            return;
+        }
 
         if (sectionId === 'maintenanceTeam') {
             Object.keys(data).forEach(catKey => {
