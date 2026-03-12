@@ -408,6 +408,7 @@ function createComboChart(canvasId, config) {
                         }
                         return ['#d1d5db', '#9ca3af', '#6b7280'][i];
                     }),
+                    hoverBackgroundColor: '#a8a29e',
                     borderRadius: 3,
                     maxBarThickness: 30,
                     yAxisID: 'y'
@@ -430,18 +431,25 @@ function createComboChart(canvasId, config) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: { font: { size: 11 }, usePointStyle: true, padding: 16 }
-                },
-                annotation: { annotations },
                 title: title ? {
                     display: true,
                     text: title,
                     font: { size: 14, weight: '600' },
                     padding: { bottom: 16 }
-                } : undefined
+                } : undefined,
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: 11 },
+                        usePointStyle: true,
+                        padding: 16,
+                        filter: (legendItem, data) => {
+                            if (legendItem.text === '비교지수' && (!lineData || lineData.length === 0)) return false;
+                            return true;
+                        }
+                    }
+                }
             },
             scales: {
                 x: { grid: { display: false }, ticks: { font: { size: 10 } } },
@@ -454,10 +462,17 @@ function createComboChart(canvasId, config) {
                         const minVal = Math.min(...validBars);
                         const maxVal = Math.max(...validBars, target || minVal);
                         const diff = maxVal - minVal;
-                        return diff < 1 ? Math.floor(minVal * 10) / 10 - 0.1 : Math.floor(minVal * 0.98);
+
+                        // 부동소수점 오차 방지 및 스케일 안정화
+                        // 차이가 작더라도 최소한 minVal의 5% 정도는 여유를 둡니다.
+                        const margin = Math.max(diff * 0.2, minVal * 0.05);
+                        return Number((minVal - margin).toFixed(1));
                     })() : undefined,
                     grid: { color: 'rgba(0,0,0,0.06)' },
-                    ticks: { font: { size: 10 }, callback: (v) => v + unit },
+                    ticks: {
+                        font: { size: 10 },
+                        callback: (v) => (typeof v === 'number' && !Number.isInteger(v)) ? v.toFixed(1) + unit : v + unit
+                    },
                     grace: '15%'
                 },
                 y1: {
@@ -488,7 +503,7 @@ function createComboChart(canvasId, config) {
                         c.fillStyle = '#333';
                     }
 
-                    c.fillText(value.toLocaleString(), bar.x, bar.y - 5);
+                    c.fillText(typeof value === 'number' ? value.toFixed(1) : value.toLocaleString(), bar.x, bar.y - 5);
                     c.restore();
                 });
                 // Line values

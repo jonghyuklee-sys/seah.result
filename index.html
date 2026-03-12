@@ -98,7 +98,15 @@
             </div>
         </div>
         <div class="sidebar-footer">
-            <button class="btn-reset" onclick="resetSystem()"
+            <div id="adminStatus"
+                style="font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 8px; text-align: center; display: none;">
+                <i class="fas fa-user-shield"></i> 관리자 모드 활성
+            </div>
+            <button class="btn-reset" id="btnAdminLogin"
+                style="background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.2); width:100%; border-radius:var(--radius-sm); padding:8px; font-size:12px; cursor:pointer; margin-bottom:8px;">
+                <i class="fas fa-lock"></i> 관리자 모드 접속
+            </button>
+            <button class="btn-reset" id="btnResetSystem" onclick="resetSystem()"
                 style="background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.4); border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:var(--radius-sm); padding:6px; font-size:11px; cursor:pointer;">
                 <i class="fas fa-sync-alt"></i> 현재 월 데이터 초기화
             </button>

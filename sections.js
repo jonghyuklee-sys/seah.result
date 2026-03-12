@@ -958,7 +958,7 @@ const SectionRenderers = {
                             <i class="${icon}" style="color:#3b82f6"></i> ${displayName} 톤파워 (톤/hr)
                         </h3>
                         <div class="card-actions">
-                            <span class="target-info">목표: ${ld.target || '-'}</span>
+                            <span class="target-info">목표: ${ld.target !== undefined && ld.target !== null ? formatNumber(ld.target) : '-'}</span>
                             <button class="btn-edit" onclick="openEditModal('tonPower', '${line}')"><i class="fas fa-edit"></i> 수정</button>
                         </div>
                     </div>

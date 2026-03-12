@@ -11,6 +11,50 @@
     let currentSection = 'dashboard';
     let currentModalData = null;
 
+    // ==========================================
+    // Admin Manager
+    // ==========================================
+    const adminManager = {
+        get isAdmin() {
+            return sessionStorage.getItem('seahAdminMode') === 'true';
+        },
+        set isAdmin(val) {
+            sessionStorage.setItem('seahAdminMode', val);
+            this.updateUI();
+        },
+        checkAccess: function () {
+            if (this.isAdmin) return true;
+            const pwd = prompt('관리자 암호를 입력하세요.');
+            if (pwd === '0000') {
+                this.isAdmin = true;
+                showToast('관리자 모드로 접속했습니다.');
+                return true;
+            } else if (pwd !== null) {
+                alert('암호가 틀렸습니다.');
+            }
+            return false;
+        },
+        updateUI: function () {
+            const status = document.getElementById('adminStatus');
+            const loginBtn = document.getElementById('btnAdminLogin');
+            if (this.isAdmin) {
+                if (status) status.style.display = 'block';
+                if (loginBtn) {
+                    loginBtn.innerHTML = '<i class="fas fa-lock-open"></i> 관리자 모드 해제';
+                    loginBtn.style.background = 'rgba(227, 25, 55, 0.2)';
+                    loginBtn.style.color = 'var(--seah-red)';
+                }
+            } else {
+                if (status) status.style.display = 'none';
+                if (loginBtn) {
+                    loginBtn.innerHTML = '<i class="fas fa-lock"></i> 관리자 모드 접속';
+                    loginBtn.style.background = 'rgba(255,255,255,0.1)';
+                    loginBtn.style.color = 'rgba(255,255,255,0.8)';
+                }
+            }
+        }
+    };
+
     // Section titles mapping
     const SECTION_TITLES = {
         dashboard: '종합 대시보드',
@@ -113,6 +157,7 @@
 
     // 편집 모달 - 특정 섹션의 특정 서브키
     window.openEditModal = function (sectionId, subKey) {
+        if (!adminManager.checkAccess()) return;
         const data = dataManager.getSectionData(sectionId);
         let formHtml = '';
         let title = `${SECTION_TITLES[sectionId]} - 데이터 수정`;
@@ -297,6 +342,7 @@
 
     // 대량 편집 모달
     window.openBulkEditModal = function (sectionId) {
+        if (!adminManager.checkAccess()) return;
         const data = dataManager.getSectionData(sectionId);
         const keys = Object.keys(data);
         let formHtml = '';
@@ -711,6 +757,20 @@
         selectMonth.value = meta.month;
         reportMonth.textContent = `${meta.year}년 ${meta.month}월`;
 
+        // Admin Login Button
+        const btnAdminLogin = document.getElementById('btnAdminLogin');
+        btnAdminLogin?.addEventListener('click', () => {
+            if (adminManager.isAdmin) {
+                if (confirm('관리자 모드를 해제하시겠습니까?')) {
+                    adminManager.isAdmin = false;
+                    showToast('관리자 모드가 해제되었습니다.');
+                }
+            } else {
+                adminManager.checkAccess();
+            }
+        });
+        adminManager.updateUI();
+
         // Menu navigation
         document.querySelectorAll('.menu-item').forEach(item => {
             item.addEventListener('click', (e) => {
@@ -773,11 +833,13 @@
                     </div>`;
 
                 window.startNewMonth = async () => {
+                    if (!adminManager.checkAccess()) return;
                     await dataManager.save();
                     navigateTo(currentSection);
                     showToast(`${year}년 ${month}월 새 보고서가 파이어베이스에 생성되었습니다.`);
                 };
                 window.copyPreviousMonth = async () => {
+                    if (!adminManager.checkAccess()) return;
                     contentArea.innerHTML = `
                         <div class="card" style="margin-top:40px">
                             <div class="card-body" style="text-align:center;padding:60px">
@@ -809,6 +871,7 @@
             if (e.target === modalOverlay) closeModal();
         });
         modalConfirm.addEventListener('click', async () => {
+            if (!adminManager.checkAccess()) return;
             if (currentModalData) {
                 try {
                     modalConfirm.disabled = true;
@@ -826,6 +889,7 @@
 
         // Save all
         btnSaveAll.addEventListener('click', async () => {
+            if (!adminManager.checkAccess()) return;
             try {
                 btnSaveAll.disabled = true;
                 const originalHtml = btnSaveAll.innerHTML;
@@ -847,7 +911,11 @@
         // 엑셀 업로드 버튼
         const btnExcelUpload = document.getElementById('btnExcelUpload');
         const excelInput = document.getElementById('excelInput');
-        btnExcelUpload?.addEventListener('click', () => excelInput.click());
+        btnExcelUpload?.addEventListener('click', () => {
+            if (adminManager.checkAccess()) {
+                excelInput.click();
+            }
+        });
         excelInput?.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 handleExcelUpload(e.target.files[0]);
@@ -870,6 +938,7 @@
 
     // 주요과제 상세 편집 모달
     window.openKeyTaskEditModal = function (team) {
+        if (!adminManager.checkAccess()) return;
         const data = dataManager.getSectionData('keyTasks');
         const tasks = data.tasks?.[team] || [];
 
@@ -1051,6 +1120,7 @@
 
     // 현재 월 데이터 초기화
     window.resetSystem = async function () {
+        if (!adminManager.checkAccess()) return;
         const y = dataManager.currentYear;
         const m = dataManager.currentMonth;
 
