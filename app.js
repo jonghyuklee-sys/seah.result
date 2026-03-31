@@ -933,7 +933,7 @@
         // Load initial section
         navigateTo('dashboard');
 
-        console.log('✅ 세아씨엠 성과개선 보고 시스템이 초기화되었습니다 (Firebase 연동됨).');
+        console.log('✅ 세아씨엠 VALUE-UP 시스템이 초기화되었습니다 (Firebase 연동됨).');
     }
 
     // 주요과제 상세 편집 모달

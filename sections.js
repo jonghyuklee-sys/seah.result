@@ -16,7 +16,7 @@ const SectionRenderers = {
         container.innerHTML = `
             <div class="card" style="margin-bottom:20px">
                 <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
-                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>성과개선 종합 대시보드</h3>
+                    <h3 style="margin:0"><i class="${icon}" style="margin-right:12px; color:#f59e0b"></i>세아씨엠 VALUE-UP 종합 대시보드</h3>
                 </div>
             </div>
             <div class="summary-row">
@@ -601,7 +601,7 @@ const SectionRenderers = {
             container.innerHTML = `
             <div class="card" style="margin-bottom:20px">
                 <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
-                    <h3 style="margin:0"><i class="fas fa-tasks" style="margin-right:12px; color:#f59e0b"></i>${meta.year}년 주요과제 진행사항</h3>
+                    <h3 style="margin:0"><i class="fas fa-tasks" style="margin-right:12px; color:#f59e0b"></i>세아씨엠 VALUE-UP 주요과제</h3>
                 </div>
             </div>
                 <div class="card-body">
@@ -1406,7 +1406,7 @@ const SectionRenderers = {
     },
 
     /*------------------------------------------
-       19. 성과개선 종합보고 (통합 개편)
+       19. VALUE-UP 종합보고 (통합 개편)
       ------------------------------------------ */
     integratedReport(container) {
         const lines = ['CPL', 'CRM', 'CGL', '1CCL', '2CCL', '3CCL'];
@@ -1420,7 +1420,7 @@ const SectionRenderers = {
         container.innerHTML = `
             <div class="card" style="margin-bottom:20px">
                 <div class="card-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
-                    <h3><i class="fas fa-file-contract" style="margin-right:12px; color:#ef4444"></i>성과개선 종합보고 - ${meta.year}년 ${meta.month}월</h3>
+                    <h3><i class="fas fa-file-contract" style="margin-right:12px; color:#ef4444"></i>VALUE-UP 종합보고 - ${meta.year}년 ${meta.month}월</h3>
                     <div class="card-actions">
                         <button class="btn-edit" onclick="openBulkEditModal('productionColdReports')" style="margin-right:8px; background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); color:white">
                             <i class="fas fa-edit"></i> 냉연 데이터 수정
